@@ -1,0 +1,12 @@
+.cproject
+.project
+msRecal.exe.stackdump
+*.xml
+*.prefs
+*.exe
+Debug/makefile
+*.mk
+*.d
+*.o
+data/baert.mzXML
+Release/makefile
