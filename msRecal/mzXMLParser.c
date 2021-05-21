@@ -29,7 +29,6 @@ static int calc_encoding_length(pscan_peaks sp)
 		return sp->compressedLen;
 	else {
 		len = ((sp->count) * 2) * (sp->precision/8);
-		
 		return (((2 + len - ((len + 2) % 3)) * 4) / 3);
 	}/* else */
 
@@ -55,15 +54,14 @@ void parse_mzxml_file(pmzxml_file file, FILE* finput, file_flags fflags, scan_co
 
 	parse_file_tail(file, finput);
 	parse_index_sequence(file, finput);
-	parse_scan_end(file, finput);
+	parse_scan_end(file, finput);;
 	parse_msrun_header(file, finput, fflags);
 
 	file->scan_array = (pscan*) malloc(file->scan_num * sizeof(pscan));
 	memset(file->scan_array, 0, file->scan_num * sizeof(pscan));
-        
 
 	topscan = (end_scan < file->scan_num? end_scan: file->scan_num);
-	
+
 	for (i=begin_scan; i<=topscan; i++) {
 		file->scan_array[i-1] = (pscan) malloc(sizeof(scan));
 		parse_scan_header(file, i, finput, sflags);
@@ -846,18 +844,21 @@ void parse_scan_peaks(pscan scan, char* beginptr, FILE* finput)
 	scan->peaks->mzs = malloc(scan->peaks->count * sizeof(double));
 	scan->peaks->intensities = malloc(scan->peaks->count * sizeof(double));
 	len = calc_encoding_length(scan->peaks);
+	//PROBLEM PROBABLY HERE!
 	tmpbuffer = decode_b64(beginptr, len+1, &newlen);
-
-	if (scan->peaks->precision == 32) {		
+	if (scan->peaks->precision == 32) {
+		printf("\nPrecision 0: %f", *flcastpointer); fflush(stdout);
 		flcastpointer = (float*)tmpbuffer;
+		printf("\nPrecision 1: %f", *flcastpointer); fflush(stdout);
 		intcastpointer = (int*)tmpbuffer;
-		
 		for (i=0; i<scan->peaks->count; i++) {
 			intcastpointer[2*i] = ntohl((unsigned int)intcastpointer[2*i]);
+
 			intcastpointer[(2*i)+1] = ntohl((unsigned int)intcastpointer[(2*i)+1]);
-			scan->peaks->mzs[i] = (double)(flcastpointer[(2*i)]);			
+			scan->peaks->mzs[i] = (double)(flcastpointer[(2*i)]);
 			scan->peaks->intensities[i] = (double)(flcastpointer[(2*i)+1]);
 		}// for
+		//CRASHES HERE!
 		free(tmpbuffer);
 	}// if
 
@@ -964,14 +965,16 @@ void parse_index_sequence(pmzxml_file mzxml_file, FILE* finput)
 
 	tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
 	while (strstr(tag, MZXML_CTAG) == NULL) {
-		printf("\n%s", tag); fflush(stdout);
+		//printf("\n%s", tag); fflush(stdout);
 		/* finding index tag */
 		if (strstr(tag, MZXML_INDEX_OTAG)) {
-			mzxml_file->index_name =  get_xml_attribute_value(tag, MZXML_INDEX_ATTRIB_NAME);			
+			mzxml_file->index_name =  get_xml_attribute_value(tag, MZXML_INDEX_ATTRIB_NAME);
+			//printf("\n***%s", mzxml_file->index_name); fflush(stdout);
 		}/* if */
 		else if (strstr(tag, MZXML_OFFSET_OTAG)) {
 			tmpbuffer = get_xml_tag_value(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);			
 			mzxml_file->index_array[mzxml_file->scan_num] = atol(tmpbuffer);	
+			//printf("\n%i", mzxml_file->index_array[mzxml_file->scan_num]); fflush(stdout);
 			mzxml_file->scan_num += 1;
 			free(tmpbuffer);
 			if (mzxml_file->scan_num == alloc_count) {
@@ -981,7 +984,7 @@ void parse_index_sequence(pmzxml_file mzxml_file, FILE* finput)
 		}/* else if */						
 		tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
 	}/* while */
-	
+	//printf("\n%i", mzxml_file->scan_num); fflush(stdout);
 	mzxml_file->index_array = realloc(mzxml_file->index_array, mzxml_file->scan_num * sizeof(long));
 	
 }/* void parse_index_sequence(pmzxml_file mzxml_file, FILE* finput) */

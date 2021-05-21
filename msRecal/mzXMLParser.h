@@ -12,11 +12,12 @@
 #include "mzXMLStructures.h"
 #include "mzXMLReaderDefs.h"
 
-#define READ_TAIL_BUFF_SIZE		256		/* 256 bytes tail size assumption */
-#define SHORT_HEADER_BUFF_SIZE	4048	/* 4KB buffer size for short headers */
-#define INDEX_REV_BUFF_SIZE		24		/* 24 bytes reverse side size assumption */
-#define INDEX_ELT_BUFF_SIZE		60		/* 60 bytes to find last index element */
-#define READ_BUFF_SIZE			32768	/* 32KB reading buffer as standard */
+/*SIZES DOUBLED!*/
+#define READ_TAIL_BUFF_SIZE		512		/* 256 bytes tail size assumption */
+#define SHORT_HEADER_BUFF_SIZE	8096	/* 4KB buffer size for short headers */
+#define INDEX_REV_BUFF_SIZE		48		/* 24 bytes reverse side size assumption */
+#define INDEX_ELT_BUFF_SIZE		120		/* 60 bytes to find last index element */
+#define READ_BUFF_SIZE			65536	/* 32KB reading buffer as standard */
 
 
 /****************************************** Hidden parsing functions ***********************************************/

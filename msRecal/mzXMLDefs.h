@@ -145,7 +145,7 @@
 #define MZXML_SHA1_CTAG "</sha1"
 
 /* index segment */
-#define MZXML_INDEX_OTAG "<index"
+#define MZXML_INDEX_OTAG "<index "
 #define MZXML_INDEX_CTAG "</index"
 #define MZXML_INDEX_ATTRIB_NAME "name"
 

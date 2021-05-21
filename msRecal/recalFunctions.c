@@ -183,7 +183,7 @@ void build_internal_calibrants(pmzxml_file mzXML_file, peptideset* peptide_set, 
 
 	for(i=0; i<set_size; i++) {
 
-		printf("Count: %i\n", i); fflush(stdout);
+		//printf("Count: %i\n", i); fflush(stdout);
 
         min_rt = (peptide_set[i].retention + params->recal_offset) - params->lower_rel_bnd_rt;
 
@@ -202,6 +202,7 @@ void build_internal_calibrants(pmzxml_file mzXML_file, peptideset* peptide_set, 
             }
 
             unique = 1;
+
             // Check if the same sequence isn't already in the list for this spectrum
             for (k=0; k<scan_cal_index[j-(params->ms_start_scan)]; k++) {
             	if (strcmp(peptide_set[candidate_list[j-1][k]].sequence, peptide_set[i].sequence) == 0) {
@@ -211,21 +212,23 @@ void build_internal_calibrants(pmzxml_file mzXML_file, peptideset* peptide_set, 
             }
 
             if (unique) {
-            	candidate_list[j-1][scan_cal_index[j-(params->ms_start_scan)]] = i; /* copy peptide sequence to internal calibrant candidate lists for nearby MS spectra... [row][calibrant]*/
-                scan_cal_index[j-(params->ms_start_scan)]++; //  number of calibrants for one ms scan
+            	candidate_list[j-1][scan_cal_index[j-(params->ms_start_scan)]] = i; // copy peptide sequence to internal calibrant candidate lists for nearby MS spectra... [row][calibrant]/
+                scan_cal_index[j-(params->ms_start_scan)]++; //  number of candidate calibrants for each ms scan within the RT window
             }
-
         }
-        //printf("\tNumber: %i\n", scan_cal_index[j-(params->ms_start_scan)]); fflush(stdout);
+
 
 	}
 
-        for(j=params->ms_start_scan; j<=params->ms_end_scan; j++) {
-            printf("\nMS scan: %i\t%f\n", j, get_scan_attributes(mzXML_file, j).retentionTime); fflush(stdout);
-            for(k=0; k<scan_cal_index[j-(params->ms_start_scan)]; k++) {
-                printf("%i\t%s\t%f\n", k+1, peptide_set[candidate_list[j-1][k]].sequence, peptide_set[candidate_list[j-1][k]].retention); fflush(stdout);
-            }
-        }
+    for(j=params->ms_start_scan; j<=params->ms_end_scan; j++) {
+    	//printf("\nMS scan: %i\t%f\n", j, get_scan_attributes(mzXML_file, j).retentionTime);
+    	//printf("\n\%i\t", j);
+    	//printf("%i", scan_cal_index[j-(params->ms_start_scan)]); fflush(stdout);
+        /*for(k=0; k<scan_cal_index[j-(params->ms_start_scan)]; k++) {
+        	//printf("%i\t%s\t%f\n", k+1, peptide_set[candidate_list[j-1][k]].sequence, peptide_set[candidate_list[j-1][k]].retention); fflush(stdout);
+        	printf("%i\t%s\t%f\n", k+1, peptide_set[candidate_list[j-1][k]].sequence, peptide_set[candidate_list[j-1][k]].retention); fflush(stdout);
+        }*/
+    }
 
 
 }

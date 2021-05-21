@@ -12,7 +12,8 @@
 #define DEFAULT_MIN_INTENSITY 50000000			// do not use peaks below MIN_INTENSITY for calibration
 #define AMINO_ACIDS "ARNDCEQGHILKMFPSTWYV"
 #define ANTI_ACIDS "BJOUXZ"
-#define MAX_ROWS 8192
+//#define MAX_ROWS 8192
+#define MAX_ROWS 50000
 #define MAX_CALIBRANTS 80
 #define DEFAULT_MODE 0						// lossless by default
 #define DEFAULT_MIN_CALIBRANTS 3			// minimum number of internal calibrants to recalibrate 

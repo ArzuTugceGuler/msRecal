@@ -74,58 +74,73 @@ int main(int argc, char *argv[]) {
     }
     if (mzXML_file->scan_num < params->ms_end_scan)
     	params->ms_end_scan = mzXML_file->scan_num;
-    printf("\ndone.\n%i MS scans to be calibrated within the scan window: [%i, %i].\n", params->ms_end_scan - params->ms_start_scan + 1 , params->ms_start_scan , params->ms_end_scan); fflush(stdout);    
+    printf("\ndone.\n%i scans within the scan window: [%i, %i].\n", params->ms_end_scan - params->ms_start_scan + 1 , params->ms_start_scan , params->ms_end_scan); fflush(stdout);
 
-    /*
+
     printf("\n>>Making internal calibrant candidate list...\n"); fflush(stdout);
     build_internal_calibrants(mzXML_file, peptide_set, pepnum, params);
+    //build_internal_calibrants(mzXML_file, peptide_set, 1104, params);
+    printf("done.\n"); fflush(stdout);
 
-    printf("\ndone.\n"); fflush(stdout);
 
-    /*
     printf("\n>>Recalibrating mzXML data...\n"); fflush(stdout);
 
     for(scan = params->ms_start_scan; scan <= params->ms_end_scan; scan++) {
     //for(scan = params->ms_start_scan; scan <= params->ms_start_scan +1; scan++) {
         mzscan = get_scan(mzXML_file, scan, 0);
-        if(mzscan->attributes.msLvl != 1 ) 
+        if(mzscan->attributes.msLvl != 1 ) {
             continue;
+        }
+
         // If crop param is 1, empty invalid scans
-	if(!mzscan->peaks || mzscan->peaks->count < 0) {
-            if (params->crop)
-		empty_scan(mzXML_file, scan);
-	    continue;
-	}
+        if(!mzscan->peaks || mzscan->peaks->count < 0) {
+        	//printf("\nInvalid scan!\n"); fflush(stdout);
+        	if (params->crop)
+        		empty_scan(mzXML_file, scan);
+        	continue;
+        }
+
         // Loading and filtering the peaks
+        //printf("\nScan: %i", scan); fflush(stdout);
         mzpeaks = load_scan_peaks(mzXML_file, scan);
         //printf("\nLoaded scan: %i\t Peak count: %i\n", scan, mzpeaks.count); fflush(stdout);
-	if (mzpeaks.count == 0) {
+
+        if (mzpeaks.count == 0) {
+        	//printf("\nScan: %i empty", scan); fflush(stdout);
             unload_scan_peaks(mzXML_file, scan);
             continue;
-	}
-        // Make the list of calibrants for this spectrum  and sort them in descending order of intensity  
+        }
+
+        // Make the list of calibrants for this spectrum  and sort them in descending order of intensity
+
         makeCalibrantList(scan, &mzpeaks, peptide_set, params);
+        printf("\nScan: %i calibrant list completed", scan); fflush(stdout);
         
+        /*
+
         // Recalibrate peaks
-	SATISFIED = recalibratePeaks(params);
+		SATISFIED = recalibratePeaks(params);
         
         if (SATISFIED) {
             applyCalibration(scan, &mzpeaks);	
             update_scan_peaks(mzXML_file, scan, mzpeaks.count, 32, mzpeaks.mzs, mzpeaks.intensities);
             printf("-------------------------------------------------------------\n"); fflush(stdout);
-	}// if
-	else {
+		}
+		else {
             unload_scan_peaks(mzXML_file, scan);
             if (params->crop)
                 empty_scan(mzXML_file, scan);						
-	}
+		}
 
+        */
     } 
-    
-    printf("done.\n\n>>Writing recalibrated mzXML file to destination %s...", params->output_mzXML_file); fflush(stdout);
+    /*
+
+	printf("done.\n\n>>Writing recalibrated mzXML file to destination %s...", params->output_mzXML_file); fflush(stdout);
     write_mzxml_file(mzXML_file, params->output_mzXML_file);
     printf("\ndone.\n"); fflush(stdout);
-*/
+
+    */
     return 0;	
 }
 
