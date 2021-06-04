@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 
 
 	// Filtering out peptides and making them unique
-    printf("\n>>Filtering peptides... "); fflush(stdout);
+    printf("\n>>Filtering peptides from pepXML... "); fflush(stdout);
     peptide_set = build_peptide_set(pepXML_file, params, &pepnum);
     printf("done.\n%i peptides that are potential calibrants.\n", pepnum); fflush(stdout);	
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     printf("\ndone.\n%i scans within the scan window: [%i, %i].\n", params->ms_end_scan - params->ms_start_scan + 1 , params->ms_start_scan , params->ms_end_scan); fflush(stdout);
 
 
-    printf("\n>>Making internal calibrant candidate list...\n"); fflush(stdout);
+    printf("\n>>Making internal calibrant candidate list for MS scans based on retention time...\n"); fflush(stdout);
     build_internal_calibrants(mzXML_file, peptide_set, pepnum, params);
     //build_internal_calibrants(mzXML_file, peptide_set, 1104, params);
     printf("done.\n"); fflush(stdout);
@@ -111,28 +111,32 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        // Make the list of calibrants for this spectrum  and sort them in descending order of intensity
 
+        // Make the list of calibrants for this spectrum  and sort them in descending order of intensity
         makeCalibrantList(scan, &mzpeaks, peptide_set, params);
-        printf("\nScan: %i calibrant list completed", scan); fflush(stdout);
-        
-        /*
+        //printf("\n%li", scan); fflush(stdout);
+
 
         // Recalibrate peaks
 		SATISFIED = recalibratePeaks(params);
+		//printf("\nRecalibrated the peaks"); fflush(stdout);
         
+
         if (SATISFIED) {
             applyCalibration(scan, &mzpeaks);	
+            printf("\n%li", scan); fflush(stdout);
+            printf("\nCALIBRATED"); fflush(stdout);
             update_scan_peaks(mzXML_file, scan, mzpeaks.count, 32, mzpeaks.mzs, mzpeaks.intensities);
             printf("-------------------------------------------------------------\n"); fflush(stdout);
 		}
 		else {
+			//printf("\nNOT CALIBRATED"); fflush(stdout);
             unload_scan_peaks(mzXML_file, scan);
             if (params->crop)
                 empty_scan(mzXML_file, scan);						
 		}
 
-        */
+
     } 
     /*
 
