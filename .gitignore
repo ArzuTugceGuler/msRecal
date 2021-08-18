@@ -10,3 +10,5 @@ Debug/makefile
 *.o
 data/baert.mzXML
 Release/makefile
+*.mzXML
+data/previous/comet.params_human_testicular
