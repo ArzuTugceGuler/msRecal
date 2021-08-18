@@ -30,7 +30,12 @@ static unsigned int ntohl(int nLongNumber)
 static int calc_encoding_length(pscan_peaks sp)
 {
 	int len;
-	if (sp->compressedLen >= 0)
+	//if (sp->compressedLen >= 0){
+	//CONDITION CHANGED!
+	/*We do not work with compressed files, if the file is not compressed then
+	 * this value is 0, so it has to be calculated. If it is compressed the
+	 * meaning of this value has to be checked*/
+	if (sp->compressedLen > 0)
 		return sp->compressedLen;
 	else {
 		len = ((sp->count) * 2) * (sp->precision/8);
@@ -100,6 +105,7 @@ void print_mzxml(pmzxml_file mzxml_file_hndl, char* output_file)
 		if (mzxml_file_hndl->scan_array[i] && mzxml_file_hndl->scan_array[i]->deprecated)
 		  newnum--;
 	}// for
+
 	tot_written_chars += fprintf(fout, "%s %s=\"%i\"", MZXML_MSRUN_OTAG, MZXML_MSRUN_ATTRIB_SCANCOUNT, newnum);
 	if (mzxml_file_hndl->start_time >= 0)
 		tot_written_chars += fprintf(fout, " %s=\"%s\"", MZXML_MSRUN_ATTRIB_STARTTIME, seconds_to_xml_duration(mzxml_file_hndl->start_time));
@@ -361,9 +367,9 @@ void print_scan_structure(pmzxml_file mzxml_file_hndl, FILE* fout, FILE* fin)
 
 	/* initializing the offset array */
 	index_offset = (long*) malloc(sizeof(long) * mzxml_file_hndl->scan_num);
-	
-	for (i=0; i<mzxml_file_hndl->scan_num; i++) {		
-		if (!mzxml_file_hndl->scan_array[i] || mzxml_file_hndl->scan_array[i]->deprecated) {			
+
+	for (i=0; i<mzxml_file_hndl->scan_num; i++) {
+		if (!mzxml_file_hndl->scan_array[i] || mzxml_file_hndl->scan_array[i]->deprecated) {
 			scantext = copy_whole_scan(mzxml_file_hndl, i, fout, fin);
 			mslvl = get_xml_attribute_value(scantext, MZXML_SCAN_ATTRIB_MSLEVEL);
 			thisscan_lvl = atoi(mslvl);
@@ -372,11 +378,11 @@ void print_scan_structure(pmzxml_file mzxml_file_hndl, FILE* fout, FILE* fin)
 			tot_written_chars += fprintf(fout, "%s", scantext);
 			tot_written_chars += fprintf(fout, endline);
 		}
-		else {		
+		else {
 			thisscan_lvl = mzxml_file_hndl->scan_array[i]->attributes.msLvl;
-			print_scan_closure(prevscan_lvl, thisscan_lvl, fout);						
+			print_scan_closure(prevscan_lvl, thisscan_lvl, fout);
 			index_offset[i] = tot_written_chars;
-			print_scan_element(mzxml_file_hndl->scan_array[i], i+1, fout, fin);		
+			print_scan_element(mzxml_file_hndl->scan_array[i], i+1, fout, fin);
 		}// else
 		prevscan_lvl = thisscan_lvl;
 	}/* for */
@@ -610,6 +616,7 @@ void print_peaks_structure(pscan mzscan, FILE* fout, FILE* fin)
 	else if (mzscan->peak_content_offset) {
 		copy_xml_segment(fin, fout, mzscan->peak_content_offset, calc_encoding_length(mzscan->peaks) + strlen(MZXML_PEAKS_CTAG) + 1);
 	}/* else */
+
 
 }/* void print_peaks_structure(pscan mzscan, FILE* fout, FILE* fin) */
 

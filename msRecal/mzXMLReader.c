@@ -12,14 +12,21 @@
 
 
 /* Calculates the length of the encoded string */
+//same function also in mzXMLParser.c
 static int calc_encoding_length(pscan_peaks sp)
 {
 	int len;
-	if (sp->compressedLen >= 0)
+	//if (sp->compressedLen >= 0){
+	//CONDITION CHANGED!
+	/*We do not work with compressed files, if the file is not compressed then
+	 * this value is 0, so it has to be calculated. If it is compressed the
+	 * meaning of this value has to be checked*/
+	if (sp->compressedLen > 0){
+		//printf("\nCompressed length %i", sp->compressedLen);
 		return sp->compressedLen;
+	}
 	else {
 		len = ((sp->count) * 2) * (sp->precision/8);
-		
 		return (((2 + len - ((len + 2) % 3)) * 4) / 3);
 	}/* else */
 
@@ -353,20 +360,23 @@ pscan get_scan(pmzxml_file file, int scan_nr, scan_config_flags sflags)
 {
 	FILE* input;
 	int count;	
-	
-	if (!file->scan_array[scan_nr-1]) {		
-		file->scan_array[scan_nr-1] = malloc(sizeof(scan));		
+
+	if (!file->scan_array[scan_nr-1]) {
+		file->scan_array[scan_nr-1] = malloc(sizeof(scan));
 		input = fopen(file->file_name, "rb");
-		parse_scan_header(file, scan_nr, input, sflags);	
+		parse_scan_header(file, scan_nr, input, sflags);
 		fclose(input);
 	}/* if */
 	else {
-		if (sflags & scan_origin_flag) 
+		if (sflags & scan_origin_flag){
 			get_scan_origin(file, scan_nr, &count);
-		if (sflags & scan_precursor_flag) 
+		}
+		if (sflags & scan_precursor_flag){
 			get_scan_precursor(file, scan_nr, &count);
-		if (sflags & scan_maldi_flag)
+		}
+		if (sflags & scan_maldi_flag){
 			get_scan_maldi(file, scan_nr);
+		}
 	}/* else */
 
 	return file->scan_array[scan_nr-1];
@@ -507,6 +517,14 @@ scan_peaks load_scan_peaks(pmzxml_file file, int scan_nr)
 	contents = malloc(((end-begin)+1)*sizeof(char));
 	read = fread(contents, sizeof(char), (end-begin)*sizeof(char), input);
 	contents[read] = '\0';
+	//print the parsed peak info
+	/*
+	printf("\nEncoding length:%i", calc_encoding_length(file->scan_array[scan_nr-1]->peaks)); fflush(stdout);
+	printf("\nBegin:%li", begin); fflush(stdout);
+	printf("\nEnd:%li", end); fflush(stdout);
+	printf("\nRead:%i", read); fflush(stdout);
+	printf("\nContents:%s", contents); fflush(stdout);
+	*/
 	fclose(input);
 	parse_scan_peaks(file->scan_array[scan_nr-1], contents, 0);
 	free(contents);

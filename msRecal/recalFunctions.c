@@ -20,6 +20,9 @@ static int seqlen;
 static int fragment[5];
 static calibrant calibrant_list[MAX_CALIBRANTS];
 
+static int calibrated_scans[MAX_ROWS];
+static double calibration_coefficients[MAX_ROWS];
+
 static double mimass[5] = 
 {
 	1.0078250321,
@@ -63,6 +66,7 @@ static unsigned char aa[20][5] =
 };
 
 static int n_calibrants;
+static int calibration_counter = 0;
 static double mz, Ca, Cb;
 
   
@@ -190,7 +194,6 @@ void build_internal_calibrants(pmzxml_file mzXML_file, peptideset* peptide_set, 
 		//printf("Count: %i\n", i); fflush(stdout);
 
         min_rt = (peptide_set[i].retention + params->recal_offset) - params->lower_rel_bnd_rt;
-
         max_rt = (peptide_set[i].retention + params->recal_offset) + params->upper_rel_bnd_rt;
 
         for(j=params->ms_start_scan; j<=params->ms_end_scan; j++) {
@@ -216,7 +219,7 @@ void build_internal_calibrants(pmzxml_file mzXML_file, peptideset* peptide_set, 
             }
 
             if (unique) {
-            	candidate_list[j-1][scan_cal_index[j-(params->ms_start_scan)]] = i; // copy peptide sequence to internal calibrant candidate lists for nearby MS spectra... [row][calibrant]/
+            	candidate_list[j-1][scan_cal_index[j-(params->ms_start_scan)]] = i; // copy peptide sequence to internal calibrant candidate lists for nearby MS spectra... [ms_scan_no-1][ms_scan_calibrant_no-1]
                 scan_cal_index[j-(params->ms_start_scan)]++; //  number of candidate calibrants for each ms scan within the RT window
             }
         }
@@ -224,15 +227,15 @@ void build_internal_calibrants(pmzxml_file mzXML_file, peptideset* peptide_set, 
 
 	}
 
-    /*for(j=params->ms_start_scan; j<=params->ms_end_scan; j++) {
-    	printf("\nMS scan: %i\t%f\n", j, get_scan_attributes(mzXML_file, j).retentionTime);
-    	printf("\n\%i\t", j);
-    	printf("%i", scan_cal_index[j-(params->ms_start_scan)]); fflush(stdout);
+	//Print candidate peptides for each MS scan
+	/*
+    for(j=params->ms_start_scan; j<=params->ms_end_scan; j++) {
+    	printf("\nMS scan: %i\t retention time: %f\n", j, get_scan_attributes(mzXML_file, j).retentionTime);
         for(k=0; k<scan_cal_index[j-(params->ms_start_scan)]; k++) {
-        	//printf("%i\t%s\t%f\n", k+1, peptide_set[candidate_list[j-1][k]].sequence, peptide_set[candidate_list[j-1][k]].retention); fflush(stdout);
         	printf("%i\t%s\t%f\n", k+1, peptide_set[candidate_list[j-1][k]].sequence, peptide_set[candidate_list[j-1][k]].retention); fflush(stdout);
         }
-    }*/
+    }
+    */
 
 
 }
@@ -279,20 +282,30 @@ int sort_type_comp_inv_int(const void *i, const void *j){
 }
 
 void makeCalibrantList(int scan, pscan_peaks mzpeaks, peptideset* peptide_set, msrecal_params* params){
-	int i, j, z;
+	int i, j, z, cyclo;
     n_calibrants = 0;
+    cyclo = 0;
+
     // Find internal calibrants for the peaks of the spectrum
     for (i=0; i<mzpeaks->count; i++) {
+    	//do not take the intensities below the background threshold into account
     	if (mzpeaks->intensities[i] < params->bg){
+    		//printf("\nPeak intensity:%f", mzpeaks->intensities[i]); fflush(stdout);
     		continue;
         }
+    	//charges from 1 to 4
     	for(z=1; z<=4; z++) {
+    		//loop through the all the candidate calibrants of this scan
     		for(j=0; j<scan_cal_index[scan-(params->ms_start_scan)]; j++) {
+    			//calculate the m/z of the candidate calibrant
     			mz = calc_mass(peptide_set[candidate_list[scan-1][j]].sequence, z);
-                if(fabs((mz - mzpeaks->mzs[i])/mz)<=params->mmme) {
-            		//printf("\nTheoretical mz: %f", mz); fflush(stdout);
-            		//printf("\nMeasured mz: %f", mzpeaks->mzs[i]); fflush(stdout);
-            		//printf("\nMeasured intensity: %f\n", mzpeaks->intensities[i]); fflush(stdout);
+    			//printf("\nmz calculated:%f measured:%f", mz, mzpeaks->mzs[i]); fflush(stdout);
+                if(fabs( (mz - mzpeaks->mzs[i]) / mz ) <= params->mmme / 1000000 ) {
+            		/*
+            		printf("\nTheoretical mz: %f", mz); fflush(stdout);
+            		printf("\nMeasured mz: %f", mzpeaks->mzs[i]); fflush(stdout);
+            		printf("\nMeasured intensity: %f\n", mzpeaks->intensities[i]); fflush(stdout);
+            		*/
             		calibrant_list[n_calibrants].mz = mz;
             		calibrant_list[n_calibrants].peak = mzpeaks->mzs[i];
             		calibrant_list[n_calibrants].intensity = mzpeaks->intensities[i];
@@ -302,20 +315,26 @@ void makeCalibrantList(int scan, pscan_peaks mzpeaks, peptideset* peptide_set, m
             // add cyclosiloxane peaks as potential internal calibrants in row i
             if(z==1) { // all cyclosiloxanes are singly charged
             	for(j=0; j<5; j++) {
-            		if(fabs((cyclosiloxanes[j] - mzpeaks->mzs[i])/ cyclosiloxanes[j]) <= params->mmme/1000000) {
+            		if(fabs( (cyclosiloxanes[j] - mzpeaks->mzs[i]) / cyclosiloxanes[j]) <= params->mmme / 1000000 ) {
             			calibrant_list[n_calibrants].mz = cyclosiloxanes[j];
             			calibrant_list[n_calibrants].peak = mzpeaks->mzs[i];
             			calibrant_list[n_calibrants].intensity = mzpeaks->intensities[i];
             			n_calibrants++;
+            			cyclo++;
             		}
             	}
             }
     	}
     }
+
+    // --------------------------------------------------------PRINT
+    printf("\tcyclosiloxanes\t%i", cyclo); fflush(stdout);
+    printf("\tinit_calibrants\t%i", n_calibrants); fflush(stdout);
+
     qsort(calibrant_list, n_calibrants, sizeof(calibrant), sort_type_comp_inv_int);
 }
 
-// Calibration function CAL2 Inverted
+// Calibration function CAL2 Inverted for FTICR
 int calib_f_FTICR(const gsl_vector *x, void *params, gsl_vector *f)
 {
 	double *y = ((struct data *)params)->y;
@@ -335,7 +354,7 @@ int calib_f_FTICR(const gsl_vector *x, void *params, gsl_vector *f)
 
 }
 
-// DF calibrator
+// DF calibrator for FTICR
 int calib_df_FTICR(const gsl_vector *x, void *params, gsl_matrix *J)
 {
 	double *y = ((struct data *)params)->y;
@@ -350,6 +369,15 @@ int calib_df_FTICR(const gsl_vector *x, void *params, gsl_matrix *J)
 
 	return GSL_SUCCESS;
 
+}
+
+// FDF Calibrator for FTICR
+int calib_fdf_FTICR(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J)
+{
+	calib_f_FTICR (x,params,f);
+	calib_df_FTICR (x,params,J);
+
+	return GSL_SUCCESS;
 }
 
 // Calibration function Orbitrap FTMS
@@ -374,29 +402,31 @@ int calib_f_FTMS(const gsl_vector *x, void *params, gsl_vector *f)
 int calib_df_FTMS(const gsl_vector *x, void *params, gsl_matrix *J)
 {
 	double *y = ((struct data *)params)->y;
-	double a = gsl_vector_get (x, 0);
+	//double a = gsl_vector_get (x, 0);
 	size_t i;
 
 	for (i=0;i<n_calibrants;i++) {
-		gsl_matrix_set (J,i,0, 1/(y[i]-y[i]) );
+		gsl_matrix_set (J,i,0, 1/(y[i]*y[i]) );
 	}
 
 	return GSL_SUCCESS;
 
-}// int calib_df (const gsl_vector *x, void *params, gsl_matrix *J)
+}
 
-// FDF Calibrator
-int calib_fdf(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J)
+// FDF Calibrator for FTICR
+int calib_fdf_FTMS(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J)
 {
-	calib_f (x,params,f);
-	calib_df (x,params,J);
+	calib_f_FTMS (x,params,f);
+	calib_df_FTMS (x,params,J);
 
 	return GSL_SUCCESS;
 }
 
+
 double mz_recal(double peak)
 {
-	return Ca/((1/peak)-Cb);
+	//return Ca/((1/peak)-Cb);
+	return Ca*peak;
 
 }/* double mz_recal(double peak) */
 
@@ -420,6 +450,7 @@ int sort_type_comp_inv_err(const void *i, const void *j)
 
 }// int comp(const void *i, const void *j)
 
+//int recalibratePeaks(msrecal_params* params){
 int recalibratePeaks(msrecal_params* params){
 	int status, SATISFIED, j;
 	const gsl_multifit_fdfsolver_type *T;
@@ -427,30 +458,35 @@ int recalibratePeaks(msrecal_params* params){
 	double chi;
 
     size_t iter=0;
-	//const size_t pp=2; //number of free parameters in calibration function
-    const size_t pp=3; //number of free parameters in calibration function
+    //const size_t pp=2; //number of free parameters in calibration function
+    const size_t pp=1; //number of free parameters in calibration function for Orbitrap
 	double y[MAX_CALIBRANTS];
 	double mz2[MAX_CALIBRANTS];
 	struct data d={y,mz2};
-	double x_init[2]={1.0,0.0}; /* start here, close to minimum if reasonably calibrated beforehand */
+	double x_init[2]={1.0,0.0}; // start here, close to minimum if reasonably calibrated beforehand
 
     gsl_multifit_function_fdf func;
     gsl_vector_view x=gsl_vector_view_array(x_init,pp);
-    func.f = &calib_f;
-    func.df = &calib_df;
-	func.fdf = &calib_fdf;
+
+    //Functions for Orbitrap
+    func.f = &calib_f_FTMS;
+    func.df = &calib_df_FTMS;
+	func.fdf = &calib_fdf_FTMS;
+
 
     SATISFIED=0;
     while (n_calibrants >=params->min_cal && !SATISFIED) {
-    	/* least-squares fit first using all peaks, than removing those that don't fit */
-        for (j=0;j<n_calibrants;j++) {
-        	d.y[j] = 1 / calibrant_list[j].peak;
+    	// least-squares fit first using all peaks, than removing those that don't fit
+    	for (j=0;j<n_calibrants;j++) {
+        	//in dummy unit
+        	d.y[j] = 1 / sqrt(calibrant_list[j].peak);
         	d.mz2[j] = calibrant_list[j].mz;
         }// for
 
         iter=0;
         T = gsl_multifit_fdfsolver_lmder;
-        s = gsl_multifit_fdfsolver_alloc (T, n_calibrants, pp); /* pp = 2 parameters, Ca and Cb */
+        // pp = 2 parameters, Ca and Cb
+        s = gsl_multifit_fdfsolver_alloc (T, n_calibrants, pp);
         func.n = n_calibrants;
         func.p = pp;
         func.params = &d;
@@ -466,20 +502,23 @@ int recalibratePeaks(msrecal_params* params){
         } while (status==GSL_CONTINUE && iter<500);
 
         Ca = gsl_vector_get(s->x,0);
-        Cb = gsl_vector_get(s->x,1);
+        //exclude second parameter for Orbitrap
+        //Cb = gsl_vector_get(s->x,1);
+        Cb = 0;
         chi = gsl_blas_dnrm2(s->f);
         gsl_multifit_fdfsolver_free(s);
 
-        /* OK, that was one internal recalibration, now lets check if all calibrants are < INTERNAL_CALIBRATION_TARGET, if not, throw these out */
-        /* and recalibrate (as long as we have at least three peaks) */
+        // OK, that was one internal recalibration, now lets check if all calibrants are < INTERNAL_CALIBRATION_TARGET, if not, throw these out
+        // and recalibrate (as long as we have at least three peaks)
         qsort(calibrant_list, n_calibrants, sizeof(calibrant), sort_type_comp_inv_err);
 
         for(j=n_calibrants-1; j>=0; j--)
         	if (fabs((calibrant_list[j].mz-mz_recal(calibrant_list[j].mz))/calibrant_list[j].mz)<INTERNAL_CALIBRATION_TARGET)
         		break;
-        if (j==n_calibrants-1)
-        	SATISFIED=1; /* all calibrants < INTERNAL_CALIBRATION_TARGET (e.g. 2.5 ppm) */
-        n_calibrants=j+1; /* remove calibrants that doesn't fit CAL2 better than e.g. 2 ppm */
+        if (j==n_calibrants-1){
+        	SATISFIED=1;
+        }// all calibrants < INTERNAL_CALIBRATION_TARGET (e.g. 2.5 ppm)
+        n_calibrants=j+1; // remove calibrants that doesn't fit CAL2 better than e.g. 2 ppm
     }
 
 	return SATISFIED;
@@ -488,16 +527,36 @@ int recalibratePeaks(msrecal_params* params){
 void applyCalibration(int scan, pscan_peaks mzpeaks)
 {
 	int j;
-
-	printf("\tFinal calibration for scan %i:\n", scan);
+	/*
+	printf("\nFinal calibration for scan %i:\n", scan);
 	for(j=0;j<n_calibrants;j++) {
-		printf("\t%f %f %f %.4f\n", calibrant_list[j].peak, calibrant_list[j].mz, mz_recal(calibrant_list[j].peak), 1e6*(mz_recal(calibrant_list[j].peak)-calibrant_list[j].mz)/calibrant_list[j].mz);
-		fflush(stdout);
+		printf("\t%f %f %f %.4f\n", calibrant_list[j].peak, calibrant_list[j].mz, mz_recal(calibrant_list[j].peak), 1e6*(mz_recal(calibrant_list[j].peak)-calibrant_list[j].mz)/calibrant_list[j].mz); fflush(stdout);
 	}// for
+	*/
 
 	for (j=0; j<mzpeaks->count; j++) {
-		mzpeaks->mzs[j] = Ca/((1/mzpeaks->mzs[j])-Cb);
+		//mzpeaks->mzs[j] = Ca/((1/mzpeaks->mzs[j])-Cb); // FTICR
+		mzpeaks->mzs[j] = Ca * mzpeaks->mzs[j];
 	}// for
+
+	// --------------------------------------------------------PRINT
+	printf("\tcalibrated\t1"); fflush(stdout);
+	printf("\tCa\t%.43f", Ca); fflush(stdout);
+
+	calibrated_scans[calibration_counter] = scan;
+	calibration_coefficients[calibration_counter] = Ca;
+	calibration_counter++;
+
+}
+
+double returnCoefficient(int scan){
+
+	for(int i = 0; i <= MAX_ROWS; i++){
+		if(calibrated_scans[i] == scan){
+			return calibration_coefficients[i];
+		}
+	}
+	return 0;
 
 }
 

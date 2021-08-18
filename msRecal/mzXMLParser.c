@@ -22,10 +22,16 @@ static int scan_index_begin = -1;
 
 
 /* Calculates the length of the encoded string */
+//same function also in mzXMLReader.c
 static int calc_encoding_length(pscan_peaks sp)
 {
 	int len;
-	if (sp->compressedLen >= 0)
+	//if (sp->compressedLen >= 0){
+		//CONDITION CHANGED!
+		/*We do not work with compressed files, if the file is not compressed then
+		 * this value is 0, so it has to be calculated. If it is compressed the
+		 * meaning of this value has to be checked*/
+	if (sp->compressedLen > 0)
 		return sp->compressedLen;
 	else {
 		len = ((sp->count) * 2) * (sp->precision/8);
@@ -844,21 +850,27 @@ void parse_scan_peaks(pscan scan, char* beginptr, FILE* finput)
 	scan->peaks->mzs = malloc(scan->peaks->count * sizeof(double));
 	scan->peaks->intensities = malloc(scan->peaks->count * sizeof(double));
 	len = calc_encoding_length(scan->peaks);
+	//printf("\nlen: %i", len); fflush(stdout);
 	//PROBLEM PROBABLY HERE!
+	//function call: parse_scan_peaks(file->scan_array[scan_nr-1], contents, 0);
+	//beginptr -> contents
 	tmpbuffer = decode_b64(beginptr, len+1, &newlen);
+	//printf("\ntmpbuffer: %s", tmpbuffer); fflush(stdout);
 	if (scan->peaks->precision == 32) {
-		printf("\nPrecision 0: %f", *flcastpointer); fflush(stdout);
 		flcastpointer = (float*)tmpbuffer;
-		printf("\nPrecision 1: %f", *flcastpointer); fflush(stdout);
 		intcastpointer = (int*)tmpbuffer;
-		for (i=0; i<scan->peaks->count; i++) {
-			intcastpointer[2*i] = ntohl((unsigned int)intcastpointer[2*i]);
 
+		for (i=0; i<scan->peaks->count; i++) {
+			//printf("\nPeak no: %i", i); fflush(stdout);
+			intcastpointer[2*i] = ntohl((unsigned int)intcastpointer[2*i]);
 			intcastpointer[(2*i)+1] = ntohl((unsigned int)intcastpointer[(2*i)+1]);
 			scan->peaks->mzs[i] = (double)(flcastpointer[(2*i)]);
 			scan->peaks->intensities[i] = (double)(flcastpointer[(2*i)+1]);
+			//print the m/z-intensity pairs for each scan
+			//printf("\nmz: %f", scan->peaks->mzs[i]); fflush(stdout);
+			//printf("\nintensity: %f\n", scan->peaks->intensities[i]); fflush(stdout);
+
 		}// for
-		//CRASHES HERE!
 		free(tmpbuffer);
 	}// if
 

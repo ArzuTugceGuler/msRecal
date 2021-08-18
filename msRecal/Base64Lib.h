@@ -16,7 +16,7 @@ char* encode_b64(unsigned char *input_buffer, char *output_buffer, int ibuff_len
 
 /* Encoding function. Extends and overwrites existing buffer */
 char* decode_b64(unsigned char *input_buffer, int buff_len, int *new_len);
-char* decode_b64(unsigned char *input_buffer, int buff_len, int *new_len);
+//char* decode_b64(char *input_buffer, int buff_len, int *new_len);
 
 #endif	/* BASE64LIB_H */
 

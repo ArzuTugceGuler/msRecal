@@ -45,6 +45,9 @@ typedef struct msrecal_param_type
 	double min_score_threshold;	/* min score filter */
 	double max_score_threshold;	/* max score filter */
 
+	char* instrument;
+	char* mass_analyzer;
+
 } msrecal_params;
 
 typedef struct peptide_set_type 
@@ -87,9 +90,15 @@ int sort_type_comp_inv_int(const void *i, const void *j);
 void makeCalibrantList(int scan, pscan_peaks mzpeaks, peptideset* peptide_set, msrecal_params* params);
 
 /* Calibrator functions */
-int calib_f(const gsl_vector *x, void *params, gsl_vector *f);
-int calib_df (const gsl_vector *x, void *params, gsl_matrix *J);
-int calib_fdf (const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J);
+//FTICR
+int calib_f_FTICR(const gsl_vector *x, void *params, gsl_vector *f);
+int calib_df_FTICR (const gsl_vector *x, void *params, gsl_matrix *J);
+int calib_fdf_FTICR (const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J);
+
+//FTMS Orbitrap
+int calib_f_FTMS(const gsl_vector *x, void *params, gsl_vector *f);
+int calib_df_FTMS (const gsl_vector *x, void *params, gsl_matrix *J);
+int calib_fdf_FTMS (const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J);
 
 double mz_recal(double peak);
 
@@ -98,6 +107,8 @@ int sort_type_comp_inv_err(const void *i, const void *j);
 int recalibratePeaks(msrecal_params* params);
 
 void applyCalibration(int scan, pscan_peaks mzpeaks);
+
+double returnCoefficient(int scan);
 
 #endif	/* MSRECALFUNCTIONS_H */
 

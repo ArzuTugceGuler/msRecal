@@ -84,6 +84,7 @@ char* encode_b64(unsigned char *input_buffer, char *output_buffer, int ibuff_len
 
 /* Decoding function. returns new buffer with decoded material and puts bytes in host order */
 char* decode_b64(unsigned char *input_buffer, int buff_len, int *new_len)
+//char* decode_b64(char *input_buffer, int buff_len, int *new_len)
 {
 	char val1, val2, val3, val4;
 	char *retval;

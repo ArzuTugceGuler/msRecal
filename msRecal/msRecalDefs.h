@@ -9,15 +9,22 @@
 #define	MSRECALDEFS_H
 
 #define HPLUS_MASS 1.00727646688
-#define DEFAULT_MIN_INTENSITY 50000000			// do not use peaks below MIN_INTENSITY for calibration
+#define DEFAULT_MIN_INTENSITY 10000
+//#define DEFAULT_MIN_INTENSITY 100000	// do not use peaks below MIN_INTENSITY for calibration
 #define AMINO_ACIDS "ARNDCEQGHILKMFPSTWYV"
 #define ANTI_ACIDS "BJOUXZ"
 //#define MAX_ROWS 8192
-#define MAX_ROWS 50000
-#define MAX_CALIBRANTS 80
+#define MAX_ROWS 450000
+#define MAX_CALIBRANTS 1000
 #define DEFAULT_MODE 0						// lossless by default
 #define DEFAULT_MIN_CALIBRANTS 3			// minimum number of internal calibrants to recalibrate 
-#define INTERNAL_CALIBRATION_TARGET 0.5e-6	// discard internal calibrants that do not fit CAL2 better than this */
+#define INTERNAL_CALIBRATION_TARGET 1.5e-6	// discard internal calibrants that do not fit CAL2 better than this */
+#define DEFAULT_START_SCAN 1
+#define DEFAULT_RT_LOWER 30
+#define DEFAULT_RT_UPPER 90
+#define DEFAULT_RECAL_OFFSET 0
+#define DEFAULT_MMME 50
+#define DEFAULT_SCORE "expect"
 
 #endif	/* MSRECALDEFS_H */
 
