@@ -32,7 +32,9 @@ int main(int argc, char *argv[]) {
     
     int SATISFIED;
 
-    double calibration_coefficient;
+    double calibration_coefficient_Ca;
+    double calibration_coefficient_Cb;
+    double calibration_coefficient_Cc;
     double calibrated_precursor_mz;
 
     params = readParameters(argc, argv);
@@ -73,7 +75,7 @@ int main(int argc, char *argv[]) {
 
     printf("\n>>Reading mzXML file %s...",params->mzxml_file); fflush(stdout);
     //mzXML_file = read_mzxml_file_spectrum(params->mzxml_file, 0, 0, params->ms_start_scan, params->ms_end_scan);
-    mzXML_file = read_mzxml_file_spectrum(params->mzxml_file, 0, scan_all_flag, params->ms_start_scan, params->ms_end_scan);
+    mzXML_file = read_mzxml_file_spectrum(params->mzxml_file, 2, scan_all_flag, params->ms_start_scan, params->ms_end_scan);
 
     if (mzXML_file == NULL) {
     	printf("error opening mzXML file\n"); fflush(stdout);
@@ -84,6 +86,25 @@ int main(int argc, char *argv[]) {
     	params->ms_end_scan = mzXML_file->scan_num;
     printf("\ndone.\n%i scans within the scan window: [%i, %i].\n", params->ms_end_scan - params->ms_start_scan + 1 , params->ms_start_scan , params->ms_end_scan); fflush(stdout);
 
+    printf("\n>>Extracting instrument information from metadata..."); fflush(stdout);
+    printf("\n%s: %s", mzXML_file->msinstrument_array[0].model_category, mzXML_file->msinstrument_array[0].model_value); fflush(stdout);
+    printf("\n%s: %s\n", mzXML_file->msinstrument_array[0].massanalyzer_category, mzXML_file->msinstrument_array[0].massanalyzer_value); fflush(stdout);
+
+    if(!params->mass_analyzer){
+    	params -> mass_analyzer = mzXML_file->msinstrument_array[0].massanalyzer_value;
+    }
+
+    if(!params->instrument){
+    	params -> instrument = mzXML_file->msinstrument_array[0].model_value;
+    }
+
+    printf("\n>>Choosing the most suitable calibration function for the data..."); fflush(stdout);
+    processInstrument(params);
+
+	if (!params->mass_analyzer && !params->instrument) {
+		printf("\nNo valid mass analyzer type found!\n"); fflush(stdout);
+	    return -1;
+	}
 
     printf("\n>>Making internal calibrant candidate list for MS scans based on retention time...\n"); fflush(stdout);
     build_internal_calibrants(mzXML_file, peptide_set, pepnum, params);
@@ -102,34 +123,58 @@ int main(int argc, char *argv[]) {
     	calibrated[i][1] = -1;
     }
 
-    // iterate each ms scan for calibration
+    // iterate each scan for calibration
     for(scan = params->ms_start_scan; scan <= params->ms_end_scan; scan++) {
     	//printf("\nscan\t%li", scan); fflush(stdout);
+    	//load scan
     	mzscan = get_scan(mzXML_file, scan, 0);
 
+    	//Calibrating ms2 precursors, it will only happen if the ms1 scan where the precursor is coming from is already calibrated
+    	//Make sure not ms=1 level
         if(mzscan->attributes.msLvl != 1 ) {
+        	//ms2 level
         	if(mzscan->attributes.msLvl == 2){
         		// --------------------------------------------------------PRINT
         		printf("\nscan\t%li\tms_level\t2", scan); fflush(stdout);
         		printf("\tprecursor_scan\t%i\tprecursor_mz\t%12f", mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum, mzXML_file ->scan_array[scan-1]->precursor_array[0].value); fflush(stdout);
+        		//ms2 scans do not have calibrant, only precursor masses are recalibrated with the respective ms1 scan coefficients
         		printf("\tcyclosiloxanes\t-1\tinit_calibrants\t-1"); fflush(stdout);
 
         		for(int i = 0; i <= params->ms_end_scan - params->ms_start_scan; i++){
+        			//find the matching ms1 scan where the precursor is selected
         			if(calibrated[i][0] == mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum){
+        				//check if that ms1 scan is calibrated (we will use it to calibrate the ms2 precursor mass)
         				if(calibrated[i][1] == 1){
         					// --------------------------------------------------------PRINT
         					printf("\tcalibrated\t1"); fflush(stdout);
         					calibrated[counter][0] = scan;
         					calibrated[counter][1] = 1;
-        					calibration_coefficient = returnCoefficient(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-        					printf("\tCa\t%.43f", calibration_coefficient); fflush(stdout);
-        					calibrated_precursor_mz = calibration_coefficient * mzXML_file ->scan_array[scan-1]->precursor_array[0].value;
-        					printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
-        					//update the precursor mass of the ms2 scan
+        					//FTICR calibration
+        					if(params->match == 1){
+        						calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+        						calibration_coefficient_Cb = returnCoefficientCb(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+           						printf("\tCa\t%.43f", calibration_coefficient_Ca); fflush(stdout);
+        						printf("\tCb\t%.43f", calibration_coefficient_Cb); fflush(stdout);
+        						calibrated_precursor_mz = calibration_coefficient_Ca / ((1/mzXML_file ->scan_array[scan-1]->precursor_array[0].value)-calibration_coefficient_Cb);
+        						printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
+        					}
+        					//Orbitrap calibration
+        					else if(params->match == 2){
+        						calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+        						printf("\tCa\t%.43f", calibration_coefficient_Ca); fflush(stdout);
+        						calibrated_precursor_mz = calibration_coefficient_Ca * mzXML_file ->scan_array[scan-1]->precursor_array[0].value;
+        						printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
+        					}
+        					//TOF calibration
+        					else if(params->match == 3){
+
+        					}
+        					//update the precursor mass of the ms2 scan after applying the calibration function with the coefficients of the ms1 scan
         					mzXML_file ->scan_array[scan-1]->precursor_array[0].value = calibrated_precursor_mz;
         					ms2_calibrated++;
         					all_calibrated++;
         				}
+        				//if the ms1 scan where the precursor is selected is not calibrated then do not calibrate ms2 precursor
         				else{
         					// --------------------------------------------------------PRINT
         					printf("\tcalibrated\t0"); fflush(stdout);
@@ -153,6 +198,7 @@ int main(int argc, char *argv[]) {
         }
 
         //Loading and filtering the peaks
+        //Loads the m/z-intensity pair of an ms1 spectrum
         mzpeaks = load_scan_peaks(mzXML_file, scan);
 
         if (mzpeaks.count == 0) {
@@ -164,9 +210,11 @@ int main(int argc, char *argv[]) {
         // Make the list of calibrants for this scan and sort them in descending order of intensity
         // --------------------------------------------------------PRINT
         printf("\nscan\t%li\tms_level\t1", scan); fflush(stdout);
+        //Since this is an ms1 scan, it won't have a precursor mass
         printf("\tprecursor_scan\t-1\tprecursor_mz\t-1"); fflush(stdout);
+        //Make the calibrant list for that ms1 scan
         makeCalibrantList(scan, &mzpeaks, peptide_set, params);
-        // Recalibrate peaks
+        // Recalibrate ms1 peaks
         SATISFIED = recalibratePeaks(params);
 
         if (SATISFIED) {

@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include "mzXMLStructures.h"
 
-#define WRITE_BUFF_SIZE 129472	/* 128KB reading buffer as standard */
+#define WRITE_BUFF_SIZE 229472	/* 128KB reading buffer as standard */
 #ifdef WIN32
   #define endline "\r\n"
 #else

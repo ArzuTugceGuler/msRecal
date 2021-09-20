@@ -37,9 +37,35 @@
 #define MZXML_PARENTFILE_ATTRIB_FILETYPE_PROCESSEDDATA "processedData"
 #define MZXML_PARENTFILE_ATTRIB_FILESHA1 "fileSha1"
 
-/* msInstrument delimiters */
+/* msInstrument section */
 #define MZXML_MSINSTRUMENT_OTAG "<msInstrument"
 #define MZXML_MSINSTRUMENT_CTAG "</msInstrument"
+#define MZXML_MSINSTRUMENT_ATTRIB_TYPE_MSINSTRUMENTID "msInstrumentID"
+
+/* msManufacturer section */
+#define MZXML_OTAG_MSMANUFACTURER "<msManufacturer"
+#define MZXML_MSMANUFACTURER_ATTRIB_TYPE_CATEGORY "category"
+#define MZXML_MSMANUFACTURER_ATTRIB_TYPE_VALUE "value"
+
+/* msModel section */
+#define MZXML_OTAG_MSMODEL "<msModel"
+#define MZXML_MSMODEL_ATTRIB_TYPE_CATEGORY "category"
+#define MZXML_MSMODEL_ATTRIB_TYPE_VALUE "value"
+
+/* msIonisation section */
+#define MZXML_OTAG_MSIONISATION "<msIonisation"
+#define MZXML_MSIONISATION_ATTRIB_TYPE_CATEGORY "category"
+#define MZXML_MSIONISATION_ATTRIB_TYPE_VALUE "value"
+
+/* msMassAnalyzer section */
+#define MZXML_OTAG_MSMASSANALYZER "<msMassAnalyzer"
+#define MZXML_MSMASSANALYZER_ATTRIB_TYPE_CATEGORY "category"
+#define MZXML_MSMASSANALYZER_ATTRIB_TYPE_VALUE "value"
+
+/* msDetector section */
+#define MZXML_OTAG_MSDETECTOR "<msDetector"
+#define MZXML_MSDETECTOR_ATTRIB_TYPE_CATEGORY "category"
+#define MZXML_MSDETECTOR_ATTRIB_TYPE_VALUE "value"
 
 /* dataProcessing section */
 #define MZXML_DATAPROCESSING_OTAG "<dataProcessing"

@@ -17,7 +17,9 @@ pmsms_pipeline_analysis read_pepxml_file(char* file_name, pipeline_analysis_flag
 	/* Logging file and opening it */
 	retval->file_name = file_name;
 
+
 	pepxml_filehandle = fopen(file_name, "rb");
+
 
 	if (!pepxml_filehandle){
 		return NULL;

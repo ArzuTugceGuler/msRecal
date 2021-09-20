@@ -75,6 +75,7 @@ void parse_msms_pipeline_analysis(pmsms_pipeline_analysis retval, FILE* finput, 
 
 	/* Scanning till we see the end */
 	tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
+
 	while (strstr(tag, MSMS_PIPELINE_ANALYSIS_CTAG) == NULL) {
 		/* Opening tag, filter attributes */
 		if (strstr(tag, MSMS_PIPELINE_ANALYSIS_OTAG) && phasecounter <= 0) {
@@ -82,6 +83,7 @@ void parse_msms_pipeline_analysis(pmsms_pipeline_analysis retval, FILE* finput, 
 			retval->name = get_xml_attribute_value(tag, MSMS_PIPELINE_ANALYSIS_ATTRIB_NAME);
 			retval->date = get_xml_attribute_value(tag, MSMS_PIPELINE_ANALYSIS_ATTRIB_DATE);
 			retval->summary_xml = get_xml_attribute_value(tag, MSMS_PIPELINE_ANALYSIS_ATTRIB_SUMMARY_XML);
+
 		}/* if */
 		/* Optional analysis summary */
 		else if (strstr(tag, ANALYSIS_SUMMARY_OTAG) && phasecounter <= 1) {
@@ -119,6 +121,7 @@ void parse_msms_pipeline_analysis(pmsms_pipeline_analysis retval, FILE* finput, 
 
 		tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
 	}/* while */
+
 
 	if (retval->analysis_summary_array)
 		retval->analysis_summary_array = realloc(retval->analysis_summary_array, retval->analysis_summary_count * sizeof(analysis_summary));
@@ -201,7 +204,7 @@ void parse_run_summary_structure(pmsms_pipeline_analysis retval, char* beginptr,
 		retval->run_summary_array = malloc(sizeof(msms_run_summary));
 		retval->run_summary_count = 0;	
 	}/* if */
-	
+
 	/* Parsing the body */	
 	retval->run_summary_array[retval->run_summary_count] = parse_run_summary(beginptr, finput, rsflags, dlist);
 				
@@ -250,7 +253,9 @@ msms_run_summary parse_run_summary(char* beginptr, FILE* finput, run_summary_fla
 	retval.msIonization = get_xml_attribute_value(beginptr, MSMS_RUN_SUMMARY_ATTRIB_MSIONIZATION);
 	retval.msMassAnalyzer = get_xml_attribute_value(beginptr, MSMS_RUN_SUMMARY_ATTRIB_MSMASSANALYZER);
 	retval.msDetector = get_xml_attribute_value(beginptr, MSMS_RUN_SUMMARY_ATTRIB_MSDETECTOR);
-	
+
+	//printf("\n%s\n", retval.msModel); fflush(stdout);
+
 	/* Scanning till we see the end */
 	tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
 	
@@ -731,6 +736,8 @@ alternative_protein parse_alternative_protein(char* beginptr, FILE* finput)
 	retval.protein = get_xml_attribute_value(beginptr, ALTERNATIVE_PROTEIN_ATTRIB_PROTEIN);
 	retval.protein_descr = get_xml_attribute_value(beginptr, ALTERNATIVE_PROTEIN_ATTRIB_PROTEIN_DESCR);
 
+	//printf("\n%s\n", retval.protein); fflush(stdout);
+
 	/* Parse and convert num tol term */	
 	tmpptr = get_xml_attribute_value(beginptr, ALTERNATIVE_PROTEIN_ATTRIB_NUM_TOL_TERM);
 	if (tmpptr) {
@@ -873,6 +880,11 @@ void parse_search_score_structure(psearch_hit retval, char* beginptr, FILE* finp
 	retval->search_score_array[retval->search_score_count].name = get_xml_attribute_value(beginptr, SEARCH_SCORE_ATTRIB_NAME);
 
 	tmpptr = get_xml_attribute_value(beginptr, SEARCH_SCORE_ATTRIB_VALUE);
+
+	//printf("\n%f\n", retval->calc_neutral_pep_mass); fflush(stdout);
+	//printf("\n%s\n", retval->peptide); fflush(stdout);
+	//printf("\n%s\n", beginptr); fflush(stdout);
+	//printf("\n%s\n", tmpptr); fflush(stdout);
 
 	retval->search_score_array[retval->search_score_count].value = strtod(tmpptr, NULL);
 	free(tmpptr);

@@ -14,6 +14,7 @@ static char* walkptr = NULL;
 
 static int parentfile_alloc_count = 1;
 static int dataprocessing_alloc_count = 1;
+static int msinstrument_alloc_count = 1;
 static int proc_op_alloc_count = 1;
 static int origin_alloc_count = 1;
 static int precursor_alloc_count = 1;
@@ -60,7 +61,7 @@ void parse_mzxml_file(pmzxml_file file, FILE* finput, file_flags fflags, scan_co
 
 	parse_file_tail(file, finput);
 	parse_index_sequence(file, finput);
-	parse_scan_end(file, finput);;
+	parse_scan_end(file, finput);
 	parse_msrun_header(file, finput, fflags);
 
 	file->scan_array = (pscan*) malloc(file->scan_num * sizeof(pscan));
@@ -180,14 +181,16 @@ void parse_msrun_header(pmzxml_file file, FILE* finput, file_flags fflags)
 		else if (strstr(tag, MZXML_PARENTFILE_OTAG)) {
 			if (file->parentfile_offset < 0)
 				file->parentfile_offset = offset + ((int)tag - (int)read_buffer);			
-			if (fflags & parentfile_flag) 
-				parse_parentfile_structure(file, tag, finput);			
+			if (fflags & parentfile_flag)
+				parse_parentfile_structure(file, tag, finput);
 		}/* else if */
 		else if (strstr(tag, MZXML_MSINSTRUMENT_OTAG)) {
 			if (file->msinstrument_offset < 0)
 				file->msinstrument_offset = offset + ((int)tag - (int)read_buffer);
-			if (fflags & instrument_flag) 
+			if (fflags & instrument_flag) {
+				//printf("\n>>***INSTRUMENT INFO READ***"); fflush(stdout);
 				parse_msinstrument_structure(file, tag, finput);
+			}/* if */
 		}/* else if */
 		else if (strstr(tag, MZXML_DATAPROCESSING_OTAG)) {
 			if (file->dataprocessing_offset < 0)
@@ -247,11 +250,93 @@ void parse_parentfile_structure(pmzxml_file file, char* beginptr, FILE* finput)
 }/* pparentfile get_parentfile_structure(pmzxml_file file, int* parentfile_count) */
 
 
-/* Parses the entire msinstrument structure TO BE IMPLEMENTED */
+/* Parses the entire msinstrument structure*/
 void parse_msinstrument_structure(pmzxml_file file, char* beginptr, FILE* finput)
 {
+	if (!(file->msinstrument_array)) {
+		file->msinstrument_array = malloc(sizeof(msinstrument));
+		file->msinstrument_count = 0;
+	}/* if */
 
-}/* pmsinstrument get_msinstrument_structure(pmzxml_file file, int* msinstrument_count) */
+	/* Retrieving the msinstrument attributes */
+	file->msinstrument_array[file->msinstrument_count] = parse_msinstrument_element(beginptr, finput);
+
+	/* Updating counters and making more room for future structures */
+	file->msinstrument_count += 1;
+	if (file->msinstrument_count == msinstrument_alloc_count) {
+		msinstrument_alloc_count *= 2;
+		file->msinstrument_array = realloc(file->msinstrument_array, msinstrument_alloc_count * sizeof(msinstrument));
+	}/* if */
+
+}/* void parse_dataprocessing_structure(pmzxml_file file, char* contents) */
+
+
+/* Parses a single dataprocessing element */
+msinstrument parse_msinstrument_element(char* beginptr, FILE* finput)
+{
+	msinstrument msi;
+	char* tmpbuffer, *tag;
+
+	/* Setting optional values */
+	msi.msInstrumentID = 1;
+	msi.manufacturer_category = NULL;
+	msi.manufacturer_value = NULL;
+	msi.model_category = NULL;
+	msi.model_value = NULL;
+	msi.ionisation_category = NULL;
+	msi.ionisation_value = NULL;
+	msi.massanalyzer_category = NULL;
+	msi.massanalyzer_value = NULL;
+	msi.detector_category = NULL;
+	msi.detector_value = NULL;
+	msi.software_type = NULL;
+	msi.software_name = NULL;
+	msi.software_version = NULL;
+
+	/* Filter msInstrumentID attribute */
+	tmpbuffer = get_xml_attribute_value(beginptr, MZXML_MSINSTRUMENT_ATTRIB_TYPE_MSINSTRUMENTID);
+	if (tmpbuffer) {
+		msi.msInstrumentID = atoi(tmpbuffer);
+		free(tmpbuffer);
+	}/* if */
+
+	tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
+	while (strstr(tag, MZXML_MSINSTRUMENT_CTAG) == NULL) {
+		if (strstr(tag, MZXML_OTAG_MSMANUFACTURER)) {
+			msi.manufacturer_category = get_xml_attribute_value(tag, MZXML_MSMANUFACTURER_ATTRIB_TYPE_CATEGORY);
+			msi.manufacturer_value = get_xml_attribute_value(tag, MZXML_MSMANUFACTURER_ATTRIB_TYPE_VALUE);
+		}/* if */
+		else if (strstr(tag, MZXML_OTAG_MSMODEL)) {
+			msi.model_category = get_xml_attribute_value(tag, MZXML_MSMODEL_ATTRIB_TYPE_CATEGORY);
+			msi.model_value = get_xml_attribute_value(tag, MZXML_MSMODEL_ATTRIB_TYPE_VALUE);
+		}/* else if */
+		else if (strstr(tag, MZXML_OTAG_MSIONISATION)) {
+			msi.ionisation_category = get_xml_attribute_value(tag, MZXML_MSIONISATION_ATTRIB_TYPE_CATEGORY);
+			msi.ionisation_value = get_xml_attribute_value(tag, MZXML_MSIONISATION_ATTRIB_TYPE_VALUE);
+		}/* else if */
+		else if (strstr(tag, MZXML_OTAG_MSMASSANALYZER)) {
+			msi.massanalyzer_category = get_xml_attribute_value(tag, MZXML_MSMASSANALYZER_ATTRIB_TYPE_CATEGORY);;
+		    msi.massanalyzer_value = get_xml_attribute_value(tag, MZXML_MSMASSANALYZER_ATTRIB_TYPE_VALUE);
+		}/* else if */
+		else if (strstr(tag, MZXML_OTAG_MSDETECTOR)) {
+			msi.detector_category = get_xml_attribute_value(tag, MZXML_MSDETECTOR_ATTRIB_TYPE_CATEGORY);;
+			msi.detector_value = get_xml_attribute_value(tag, MZXML_MSDETECTOR_ATTRIB_TYPE_VALUE);
+		}/* else if */
+		else if (strstr(tag, MZXML_SOFTWARE_OTAG)) {
+			msi.software_type = get_xml_attribute_value(tag, MZXML_SOFTWARE_ATTRIB_TYPE);
+			msi.software_name = get_xml_attribute_value(tag, MZXML_SOFTWARE_ATTRIB_NAME);
+			msi.software_version = get_xml_attribute_value(tag, MZXML_SOFTWARE_ATTRIB_VERSION);
+			tmpbuffer = get_xml_attribute_value(tag, MZXML_SOFTWARE_ATTRIB_COMPLETIONTIME);
+			if (tmpbuffer) {
+				free(tmpbuffer);
+			}/* if */
+		}/* if */
+		tag = get_xml_tag(read_buffer, &walkptr, finput, READ_BUFF_SIZE, &offset);
+	}/* while */
+
+	return msi;
+
+}/* msinstrument parse_msinstrument_element(char* content) */
 
 
 /* Parses the dataprocessing structure */
@@ -1016,6 +1101,8 @@ void parse_file_tail(pmzxml_file mzxml_file, FILE* finput)
 	read_chars = fread(read_buffer, sizeof(char), READ_TAIL_BUFF_SIZE-1, finput);
 	read_buffer[read_chars] = '\0';
 	walkptr = read_buffer;
+
+
 
 	tag = get_xml_tag(read_buffer, &walkptr, finput, READ_TAIL_BUFF_SIZE, &offset);
 	while (strstr(tag, MZXML_CTAG) == NULL) {		

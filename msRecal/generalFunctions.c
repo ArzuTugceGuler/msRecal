@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -140,6 +141,9 @@ msrecal_params* readParameters(int argc, char *argv[])
         printf("\nBackground intensity: %g", params->bg);
         printf("\nRetention time window: [-%g , +%g]", params->lower_rel_bnd_rt, params->upper_rel_bnd_rt);
         printf("\nRetention time offset: %g", params->recal_offset);
+    	if(!params->mass_analyzer && !params->instrument){
+    		printf("\nNo instrumental information set by the user, metadata will be used!");
+    	}
         
 	// Checking integrity of the parameter file
 	/*if (params->pepxml_file == NULL  || params->mzxml_file == NULL)
@@ -177,9 +181,68 @@ void initParameters(msrecal_params* params)
 
 	params->instrument = NULL;
 	params->mass_analyzer = NULL;
+
+	params->match = 0;
         
-        printf("\ndone.");
+    printf("\ndone.");
 	
 } //void initParameters(parameters* params)
+
+void processInstrument(msrecal_params* params){
+
+	char* function = NULL;
+
+	if(params->mass_analyzer){
+		if(strcasestr(params->mass_analyzer, "fourier transform ion cyclotron")){
+			printf("\nMATCH!"); fflush(stdout);
+			params->match = 1;
+			function = "FTICR";
+		}
+
+		else if(strcasestr(params->mass_analyzer, "orbitrap")){
+			params->match = 2;
+			function = "Orbitrap";
+		}
+
+		//For the mistake with Q Exactive
+		else if(strcasestr(params->mass_analyzer, "quadrupole")){
+			if(strcasestr(params->instrument, "Q Exactive")){
+				params->match = 2;
+				function = "Orbitrap";
+			}
+			else if(strcasestr(params->instrument, "tof")){
+				params->match = 3;
+				function = "TOF";
+			}
+		}
+
+		else if(strcasestr(params->mass_analyzer, "flight") || strcasestr(params->mass_analyzer, "tof")){
+			params->match = 3;
+			function = "Time-of-flight";
+		}
+	}
+
+	else if (params->instrument){
+		if(strcasestr(params->instrument, "LTQ FT")){
+			params->match = 1;
+			function = "FTICR";
+		}
+
+		else if(strcasestr(params->instrument, "orbitrap") || strcasestr(params->instrument, "velos")
+															  || strcasestr(params->instrument, "lumos")
+															  || strcasestr(params->instrument, "Q Exactive") ){
+			params->match = 2;
+			function = "Orbitrap";
+		}
+		else if(strcasestr(params->instrument, "tof")){
+			params->match = 3;
+			function = "Time-of-flight";
+		}
+	}
+
+	printf("\n*%s* calibration function will be used.\n", function); fflush(stdout);
+
+
+}
  
 

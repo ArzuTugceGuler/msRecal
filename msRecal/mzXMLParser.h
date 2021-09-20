@@ -33,6 +33,9 @@ void parse_parentfile_structure(pmzxml_file file, char* beginptr, FILE* finput);
 /* Parses the entire msinstrument structure */
 void parse_msinstrument_structure(pmzxml_file file, char* beginptr, FILE* finput);
 
+/* Parses a single dataprocessing element */
+msinstrument parse_msinstrument_element(char* beginptr, FILE* finput);
+
 /* Parses the entire dataprocessing structure. */
 void parse_dataprocessing_structure(pmzxml_file file, char* beginptr, FILE* finput);
 

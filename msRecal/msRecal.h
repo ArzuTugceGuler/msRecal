@@ -48,6 +48,8 @@ typedef struct msrecal_param_type
 	char* instrument;
 	char* mass_analyzer;
 
+	int match;
+
 } msrecal_params;
 
 typedef struct peptide_set_type 
@@ -75,6 +77,8 @@ void showHelp();
 // parameter filtering functions 
 msrecal_params* readParameters(int argc, char *argv[]);
 void initParameters(msrecal_params* params);
+
+void processInstrument(msrecal_params* params);
 
 // reading peptides
 int process_peptide(search_hit sh, msrecal_params* params);
@@ -108,7 +112,9 @@ int recalibratePeaks(msrecal_params* params);
 
 void applyCalibration(int scan, pscan_peaks mzpeaks);
 
-double returnCoefficient(int scan);
+double returnCoefficientCa(int scan);
+double returnCoefficientCb(int scan);
+double returnCoefficientCc(int scan);
 
 #endif	/* MSRECALFUNCTIONS_H */
 

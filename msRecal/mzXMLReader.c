@@ -182,7 +182,19 @@ void unload_dataprocessing_struct(dataprocessing dp)
 /* Unloads the msinstrument structure */
 void unload_msinstrument_struct(msinstrument msi)
 {
-	free(msi.content);
+	free(msi.manufacturer_category);
+	free(msi.manufacturer_value);
+	free(msi.model_category);
+	free(msi.model_value);
+	free(msi.ionisation_category);
+	free(msi.ionisation_value);
+	free(msi.massanalyzer_category);
+	free(msi.massanalyzer_value);
+	free(msi.detector_category);
+	free(msi.detector_value);
+	free(msi.software_type);
+	free(msi.software_name);
+	free(msi.software_version);
 
 }// void unload_msinstrument_struct(msinstrument msi)
 

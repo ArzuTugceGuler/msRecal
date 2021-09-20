@@ -175,7 +175,24 @@ typedef struct mzxml_dataprocessing_type
 /* msinstrument section */
 typedef struct mzxml_msinstrument_type
 {
-	char* content;
+	//char* content;
+	/* Attributes */
+	int msInstrumentID;
+
+	/* Structures */
+	char*  manufacturer_category;
+    char*  manufacturer_value;
+    char*  model_category;
+    char*  model_value;
+    char*  ionisation_category;
+    char*  ionisation_value;
+    char*  massanalyzer_category;
+    char*  massanalyzer_value;
+    char*  detector_category;
+    char*  detector_value;
+    char*  software_type;
+    char*  software_name;
+    char*  software_version;
 
 } msinstrument, *pmsinstrument;
 
