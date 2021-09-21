@@ -628,6 +628,14 @@ int recalibratePeaks(msrecal_params* params){
         n_calibrants=j+1; // remove calibrants that doesn't fit CAL2 better than e.g. 2 ppm
     }
 
+    if(SATISFIED){
+    	printf("\tcalibrated\t1"); fflush(stdout);
+    	printf("\tCa: %f\t", Ca); fflush(stdout);
+    	if(calib_mode == 1 || calib_mode == 3){
+    		printf("\tCb: %f\t", Cb); fflush(stdout);
+    	}
+    }
+
 	return SATISFIED;
 }
 

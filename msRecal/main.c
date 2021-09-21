@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
     int all_calibrated = 0;
     int ms1_calibrated = 0;
     int ms2_calibrated = 0;
+    int previous_ms1 = 0;
 
     for(int i = 0; i <= params->ms_end_scan - params->ms_start_scan; i++){
     	calibrated[i][0] = -1;
@@ -136,43 +137,45 @@ int main(int argc, char *argv[]) {
         	if(mzscan->attributes.msLvl == 2){
         		// --------------------------------------------------------PRINT
         		printf("\nscan\t%li\tms_level\t2", scan); fflush(stdout);
-        		printf("\tprecursor_scan\t%i\tprecursor_mz\t%12f", mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum, mzXML_file ->scan_array[scan-1]->precursor_array[0].value); fflush(stdout);
-        		//ms2 scans do not have calibrant, only precursor masses are recalibrated with the respective ms1 scan coefficients
+        		//printf("\tprecursor_scan\t%i\tprecursor_mz\t%12f", mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum, mzXML_file ->scan_array[scan-1]->precursor_array[0].value); fflush(stdout);
+        		//ms2 scans do not have their own calibrants, they get it from the respective ms1 scans
+        		//only precursor masses are recalibrated with the respective ms1 scan coefficients
         		printf("\tcyclosiloxanes\t-1\tinit_calibrants\t-1"); fflush(stdout);
 
-        		for(int i = 0; i <= params->ms_end_scan - params->ms_start_scan; i++){
+        		//This check is omited because some files do not have precursor scan info, so we assume the precursor is selected from the previous ms1 scan
+        		//for(int i = 0; i <= params->ms_end_scan - params->ms_start_scan; i++){
         			//find the matching ms1 scan where the precursor is selected
-        			if(calibrated[i][0] == mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum){
+        			//if(calibrated[i][0] == mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum){
         				//check if that ms1 scan is calibrated (we will use it to calibrate the ms2 precursor mass)
-        				if(calibrated[i][1] == 1){
+        				if(previous_ms1 == 1){
         					// --------------------------------------------------------PRINT
         					printf("\tcalibrated\t1"); fflush(stdout);
         					calibrated[counter][0] = scan;
         					calibrated[counter][1] = 1;
         					//FTICR calibration
         					if(params->match == 1){
-        						calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-        						calibration_coefficient_Cb = returnCoefficientCb(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-           						printf("\tCa\t%.43f", calibration_coefficient_Ca); fflush(stdout);
-        						printf("\tCb\t%.43f", calibration_coefficient_Cb); fflush(stdout);
+        						//calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+        						//calibration_coefficient_Cb = returnCoefficientCb(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+           						printf("\tCa\t%f", calibration_coefficient_Ca); fflush(stdout);
+        						printf("\tCb\t%f", calibration_coefficient_Cb); fflush(stdout);
         						calibrated_precursor_mz = calibration_coefficient_Ca / ((1/mzXML_file ->scan_array[scan-1]->precursor_array[0].value)-calibration_coefficient_Cb);
-        						printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
+        						printf("\tprecursor_before\t%f\tprecursor_after\t%f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
         					}
         					//Orbitrap calibration
         					else if(params->match == 2){
-        						calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-        						printf("\tCa\t%.43f", calibration_coefficient_Ca); fflush(stdout);
+        						//calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+        						printf("\tCa\t%f", calibration_coefficient_Ca); fflush(stdout);
         						calibrated_precursor_mz = calibration_coefficient_Ca * mzXML_file ->scan_array[scan-1]->precursor_array[0].value;
-        						printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
+        						printf("\tprecursor_before\t%f\tprecursor_after\t%f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
         					}
         					//TOF calibration
         					else if(params->match == 3){
-        						calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-        						calibration_coefficient_Cb = returnCoefficientCb(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-           						printf("\tCa\t%.43f", calibration_coefficient_Ca); fflush(stdout);
-        						printf("\tCb\t%.43f", calibration_coefficient_Cb); fflush(stdout);
+        						//calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+        						//calibration_coefficient_Cb = returnCoefficientCb(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
+           						printf("\tCa\t%f", calibration_coefficient_Ca); fflush(stdout);
+        						printf("\tCb\t%f", calibration_coefficient_Cb); fflush(stdout);
         						calibrated_precursor_mz = ( (sqrt(mzXML_file ->scan_array[scan-1]->precursor_array[0].value) - calibration_coefficient_Cb) / calibration_coefficient_Ca ) * ( (sqrt(mzXML_file ->scan_array[scan-1]->precursor_array[0].value) - calibration_coefficient_Cb) / calibration_coefficient_Ca );
-        						printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
+        						printf("\tprecursor_before\t%f\tprecursor_after\t%f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
         					}
         					//update the precursor mass of the ms2 scan after applying the calibration function with the coefficients of the ms1 scan
         					mzXML_file ->scan_array[scan-1]->precursor_array[0].value = calibrated_precursor_mz;
@@ -187,9 +190,9 @@ int main(int argc, char *argv[]) {
         					calibrated[counter][1] = 0;
         				}
         			counter++;
-        			break;
-        			}
-        		}
+        			//break;
+        			//}// if precursor scan number match
+        		//} for loop for all the previous scans
         	}
             continue;
         }
@@ -215,28 +218,32 @@ int main(int argc, char *argv[]) {
         // Make the list of calibrants for this scan and sort them in descending order of intensity
         // --------------------------------------------------------PRINT
         printf("\nscan\t%li\tms_level\t1", scan); fflush(stdout);
-        //Since this is an ms1 scan, it won't have a precursor mass
-        printf("\tprecursor_scan\t-1\tprecursor_mz\t-1"); fflush(stdout);
         //Make the calibrant list for that ms1 scan
         makeCalibrantList(scan, &mzpeaks, peptide_set, params);
         // Recalibrate ms1 peaks
-        printf("\ncall recalibratePeaks function"); fflush(stdout);
         SATISFIED = recalibratePeaks(params);
 
         if (SATISFIED) {
-        	printf("\nSATISFIED"); fflush(stdout);
             applyCalibration(scan, &mzpeaks);
             update_scan_peaks(mzXML_file, scan, mzpeaks.count, 32, mzpeaks.mzs, mzpeaks.intensities);
             calibrated[counter][0] = scan;
             calibrated[counter][1] = 1;
             all_calibrated++;
             ms1_calibrated++;
+            previous_ms1 = 1;
+            calibration_coefficient_Ca = returnCoefficientCa(scan);
+			if(params->match == 1 || params->match == 3){
+				calibration_coefficient_Cb = returnCoefficientCb(scan);
+			}
 		}
 		else {
 			// --------------------------------------------------------PRINT
+			//printf("\nTEST"); fflush(stdout);
 			printf("\tcalibrated\t0"); fflush(stdout);
+			//printf("\nNOT CALIBRATED"); fflush(stdout);
 			calibrated[counter][0] = scan;
 			calibrated[counter][1] = 0;
+			previous_ms1 = 0;
             unload_scan_peaks(mzXML_file, scan);
             if (params->crop)
                 empty_scan(mzXML_file, scan);						

@@ -10,7 +10,7 @@
 
 #define HPLUS_MASS 1.00727646688
 //#define DEFAULT_MIN_INTENSITY 100000
-#define DEFAULT_MIN_INTENSITY 100	// do not use peaks below MIN_INTENSITY for calibration
+#define DEFAULT_MIN_INTENSITY 15	// do not use peaks below MIN_INTENSITY for calibration
 #define AMINO_ACIDS "ARNDCEQGHILKMFPSTWYV"
 #define ANTI_ACIDS "BJOUXZ"
 //#define MAX_ROWS 8192
