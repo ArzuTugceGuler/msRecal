@@ -169,13 +169,9 @@ int main(int argc, char *argv[]) {
         					else if(params->match == 3){
         						calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
         						calibration_coefficient_Cb = returnCoefficientCb(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
-        						calibration_coefficient_Cc = returnCoefficientCc(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
            						printf("\tCa\t%.43f", calibration_coefficient_Ca); fflush(stdout);
         						printf("\tCb\t%.43f", calibration_coefficient_Cb); fflush(stdout);
-        						printf("\tCc\t%.43f", calibration_coefficient_Cc); fflush(stdout);
-        						calibrated_precursor_mz = calibration_coefficient_Ca *
-        								( ((-1+sqrt( 1+( 4*mzXML_file ->scan_array[scan-1]->precursor_array[0].value) )) / 2) * ((-1+sqrt( 1+(4*mzXML_file ->scan_array[scan-1]->precursor_array[0].value) )) / 2 ) ) +
-										calibration_coefficient_Cb * ((-1+sqrt( 1+(4*mzXML_file ->scan_array[scan-1]->precursor_array[0].value) )) / 2 ) + calibration_coefficient_Cc;
+        						calibrated_precursor_mz = ( (sqrt(mzXML_file ->scan_array[scan-1]->precursor_array[0].value) - calibration_coefficient_Cb) / calibration_coefficient_Ca ) * ( (sqrt(mzXML_file ->scan_array[scan-1]->precursor_array[0].value) - calibration_coefficient_Cb) / calibration_coefficient_Ca );
         						printf("\tprecursor_before\t%.43f\tprecursor_after\t%.43f", mzXML_file ->scan_array[scan-1]->precursor_array[0].value, calibrated_precursor_mz); fflush(stdout);
         					}
         					//update the precursor mass of the ms2 scan after applying the calibration function with the coefficients of the ms1 scan
@@ -224,9 +220,11 @@ int main(int argc, char *argv[]) {
         //Make the calibrant list for that ms1 scan
         makeCalibrantList(scan, &mzpeaks, peptide_set, params);
         // Recalibrate ms1 peaks
+        printf("\ncall recalibratePeaks function"); fflush(stdout);
         SATISFIED = recalibratePeaks(params);
 
         if (SATISFIED) {
+        	printf("\nSATISFIED"); fflush(stdout);
             applyCalibration(scan, &mzpeaks);
             update_scan_peaks(mzXML_file, scan, mzpeaks.count, 32, mzpeaks.mzs, mzpeaks.intensities);
             calibrated[counter][0] = scan;

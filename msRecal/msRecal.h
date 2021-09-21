@@ -119,7 +119,6 @@ void applyCalibration(int scan, pscan_peaks mzpeaks);
 
 double returnCoefficientCa(int scan);
 double returnCoefficientCb(int scan);
-double returnCoefficientCc(int scan);
 
 #endif	/* MSRECALFUNCTIONS_H */
 

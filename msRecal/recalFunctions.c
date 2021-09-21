@@ -22,7 +22,7 @@ static calibrant calibrant_list[MAX_CALIBRANTS];
 
 static int calibrated_scans[MAX_ROWS];
 //For each MS1, Ca, Cb, Cc (if applicable)
-static double calibration_coefficients[MAX_ROWS][3];
+static double calibration_coefficients[MAX_ROWS][2];
 
 static int calib_mode;
 
@@ -70,7 +70,7 @@ static unsigned char aa[20][5] =
 
 static int n_calibrants;
 static int calibration_counter = 0;
-static double mz, Ca, Cb, Cc;
+static double mz, Ca, Cb;
 
   
 /* Function that determines if the peptide should be processed or not */
@@ -431,13 +431,12 @@ int calib_f_TOF(const gsl_vector *x, void *params, gsl_vector *f)
 	double *mz = ((struct data *)params)->mz2;
 	double a = gsl_vector_get (x, 0);
 	double b = gsl_vector_get (x, 1);
-	double c = gsl_vector_get (x, 2);
 	double M;
     size_t i;
 
 	for (i=0;i<n_calibrants;i++) {
-		//Model m = at^2+bt+c
-		M = (a*y[i]*y[i])+(b*y[i])+c;
+		//Model m = ((t-b)/a)^2
+		M = ( (y[i]-b) / a ) * ( (y[i]-b) / a );
 		gsl_vector_set (f, i, (M-mz[i]));
 	}// for
 
@@ -449,14 +448,13 @@ int calib_f_TOF(const gsl_vector *x, void *params, gsl_vector *f)
 int calib_df_TOF(const gsl_vector *x, void *params, gsl_matrix *J)
 {
 	double *y = ((struct data *)params)->y;
-	//double a = gsl_vector_get (x, 0);
-	//double b = gsl_vector_get (x, 1);
+	double a = gsl_vector_get (x, 0);
+	double b = gsl_vector_get (x, 1);
 	size_t i;
 
 	for (i=0;i<n_calibrants;i++) {
-		gsl_matrix_set (J,i,0, y[i]*y[i] );
-		gsl_matrix_set (J,i,1, y[i] );
-		gsl_matrix_set (J,i,2, 1 );
+		gsl_matrix_set (J,i,0, -2 * (y[i]-b) * (y[i]-b) / (a*a*a) );
+		gsl_matrix_set (J,i,1, 2 * (b-y[i]) / (a*a) );
 	}// for
 
 	return GSL_SUCCESS;
@@ -485,7 +483,7 @@ double mz_recal(double peak)
 	}
 	//TOF calibration
 	else
-		return Ca * ( ((-1+sqrt( 1+( 4*peak) )) / 2) * ((-1+sqrt( 1+(4*peak) )) / 2 ) ) + Cb * ((-1+sqrt( 1+(4*peak) )) / 2 ) + Cc;
+		return ( (sqrt(peak)-Cb) / Ca ) * ( (sqrt(peak)-Cb) / Ca );
 }/* double mz_recal(double peak) */
 
 
@@ -528,18 +526,13 @@ int recalibratePeaks(msrecal_params* params){
 	calib_mode = params->match;
 
 	//set the number of free parameters based on the calibration function
-	//FTICR calibration
-
-	if(calib_mode == 1){
+	//FTICR and TOF calibration
+	if(calib_mode == 1 || calib_mode == 3){
 		pp=2;
 	}
 	//Orbitrap calibration
 	else if(calib_mode == 2){
 		pp=1;
-	}
-	//TOF calibration
-	else if(calib_mode == 3){
-		pp=3;
 	}
 
     gsl_multifit_function_fdf func;
@@ -580,7 +573,7 @@ int recalibratePeaks(msrecal_params* params){
     		}
     		//TOF calibration
     		else if(calib_mode == 3){
-    			d.y[j] = (-1+sqrt( 1+( 4*calibrant_list[j].peak) )) / 2;
+    			d.y[j] = sqrt(calibrant_list[j].peak);
     		}
         	d.mz2[j] = calibrant_list[j].mz;
         }// for
@@ -616,7 +609,6 @@ int recalibratePeaks(msrecal_params* params){
 		else if(calib_mode == 3){
 			Ca = gsl_vector_get(s->x,0);
 			Cb = gsl_vector_get(s->x,1);
-			Cc = gsl_vector_get(s->x,2);
 		}
         chi = gsl_blas_dnrm2(s->f);
         gsl_multifit_fdfsolver_free(s);
@@ -660,7 +652,7 @@ void applyCalibration(int scan, pscan_peaks mzpeaks)
 		}
 		//TOF calibration
 		else if(calib_mode == 3){
-			mzpeaks->mzs[j] = Ca * ( ((-1+sqrt( 1+( 4*mzpeaks->mzs[j]) )) / 2) * ((-1+sqrt( 1+(4*mzpeaks->mzs[j]) )) / 2 ) ) + Cb * ((-1+sqrt( 1+(4*mzpeaks->mzs[j]) )) / 2 ) + Cc;
+			mzpeaks->mzs[j] = ( (sqrt(mzpeaks->mzs[j])-Cb) / Ca ) * ( (sqrt(mzpeaks->mzs[j])-Cb) / Ca );
 		}
 
 	}// for
@@ -672,12 +664,9 @@ void applyCalibration(int scan, pscan_peaks mzpeaks)
 	calibrated_scans[calibration_counter] = scan;
 	//FTICR, Orbitrap, TOF all have a Ca coefficient
 	calibration_coefficients[calibration_counter][1] = Ca;
-	//FTICR
-	if(calib_mode == 1)
+	//FTICR and TOF have a second calibrant
+	if(calib_mode == 1 || calib_mode == 3 )
 		calibration_coefficients[calibration_counter][2] = Cb;
-	//TOF
-	if(calib_mode == 3)
-		calibration_coefficients[calibration_counter][3] = Cc;
 	calibration_counter++;
 
 }
@@ -697,16 +686,6 @@ double returnCoefficientCb(int scan){
 	for(int i = 0; i <= MAX_ROWS; i++){
 		if(calibrated_scans[i] == scan){
 			return calibration_coefficients[i][2];
-		}
-	}
-	return 0;
-}
-
-double returnCoefficientCc(int scan){
-
-	for(int i = 0; i <= MAX_ROWS; i++){
-		if(calibrated_scans[i] == scan){
-			return calibration_coefficients[i][3];
 		}
 	}
 	return 0;
