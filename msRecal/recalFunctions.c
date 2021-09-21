@@ -382,7 +382,7 @@ int calib_fdf_FTICR(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix
 	return GSL_SUCCESS;
 }
 
-// Calibration function Orbitrap FTMS
+// Calibration function for Orbitrap FTMS
 int calib_f_FTMS(const gsl_vector *x, void *params, gsl_vector *f)
 {
 	double *y = ((struct data *)params)->y;
@@ -415,11 +415,59 @@ int calib_df_FTMS(const gsl_vector *x, void *params, gsl_matrix *J)
 
 }
 
-// FDF Calibrator for FTICR
+// FDF Calibrator for FTMS
 int calib_fdf_FTMS(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J)
 {
 	calib_f_FTMS (x,params,f);
 	calib_df_FTMS (x,params,J);
+
+	return GSL_SUCCESS;
+}
+
+// Calibration function inverted for TOF
+int calib_f_TOF(const gsl_vector *x, void *params, gsl_vector *f)
+{
+	double *y = ((struct data *)params)->y;
+	double *mz = ((struct data *)params)->mz2;
+	double a = gsl_vector_get (x, 0);
+	double b = gsl_vector_get (x, 1);
+	double c = gsl_vector_get (x, 2);
+	double M;
+    size_t i;
+
+	for (i=0;i<n_calibrants;i++) {
+		//Model m = at^2+bt+c
+		M = (a*y[i]*y[i])+(b*y[i])+c;
+		gsl_vector_set (f, i, (M-mz[i]));
+	}// for
+
+    return GSL_SUCCESS;
+
+}
+
+// DF calibrator for TOF
+int calib_df_TOF(const gsl_vector *x, void *params, gsl_matrix *J)
+{
+	double *y = ((struct data *)params)->y;
+	//double a = gsl_vector_get (x, 0);
+	//double b = gsl_vector_get (x, 1);
+	size_t i;
+
+	for (i=0;i<n_calibrants;i++) {
+		gsl_matrix_set (J,i,0, y[i]*y[i] );
+		gsl_matrix_set (J,i,1, y[i] );
+		gsl_matrix_set (J,i,2, 1 );
+	}// for
+
+	return GSL_SUCCESS;
+
+}
+
+// FDF Calibrator for TOF
+int calib_fdf_TOF(const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J)
+{
+	calib_f_TOF (x,params,f);
+	calib_df_TOF (x,params,J);
 
 	return GSL_SUCCESS;
 }
@@ -436,11 +484,10 @@ double mz_recal(double peak)
 		return Ca*peak;
 	}
 	//TOF calibration
-	/*else if(calib_mode == 3)
-		return NULL;*/
-
-
+	else
+		return Ca * ( ((-1+sqrt( 1+( 4*peak) )) / 2) * ((-1+sqrt( 1+(4*peak) )) / 2 ) ) + Cb * ((-1+sqrt( 1+(4*peak) )) / 2 ) + Cc;
 }/* double mz_recal(double peak) */
+
 
 /* compare the integers */
 int sort_type_comp_inv_err(const void *i, const void *j)
@@ -513,7 +560,9 @@ int recalibratePeaks(msrecal_params* params){
 	}
 	//TOF calibration
 	else if(calib_mode == 3){
-
+		func.f = &calib_f_TOF;
+		func.df = &calib_df_TOF;
+		func.fdf = &calib_fdf_TOF;
 	}
 
     SATISFIED=0;
@@ -531,7 +580,7 @@ int recalibratePeaks(msrecal_params* params){
     		}
     		//TOF calibration
     		else if(calib_mode == 3){
-
+    			d.y[j] = (-1+sqrt( 1+( 4*calibrant_list[j].peak) )) / 2;
     		}
         	d.mz2[j] = calibrant_list[j].mz;
         }// for
@@ -565,7 +614,9 @@ int recalibratePeaks(msrecal_params* params){
 		}
 		//TOF calibration
 		else if(calib_mode == 3){
-
+			Ca = gsl_vector_get(s->x,0);
+			Cb = gsl_vector_get(s->x,1);
+			Cc = gsl_vector_get(s->x,2);
 		}
         chi = gsl_blas_dnrm2(s->f);
         gsl_multifit_fdfsolver_free(s);
@@ -609,14 +660,14 @@ void applyCalibration(int scan, pscan_peaks mzpeaks)
 		}
 		//TOF calibration
 		else if(calib_mode == 3){
-
+			mzpeaks->mzs[j] = Ca * ( ((-1+sqrt( 1+( 4*mzpeaks->mzs[j]) )) / 2) * ((-1+sqrt( 1+(4*mzpeaks->mzs[j]) )) / 2 ) ) + Cb * ((-1+sqrt( 1+(4*mzpeaks->mzs[j]) )) / 2 ) + Cc;
 		}
 
 	}// for
 
 	// --------------------------------------------------------PRINT
-	printf("\tcalibrated\t1"); fflush(stdout);
-	printf("\tCa\t%.43f", Ca); fflush(stdout);
+	//printf("\tcalibrated\t1"); fflush(stdout);
+	//printf("\tCa\t%.43f", Ca); fflush(stdout);
 
 	calibrated_scans[calibration_counter] = scan;
 	//FTICR, Orbitrap, TOF all have a Ca coefficient

@@ -104,6 +104,11 @@ int calib_f_FTMS(const gsl_vector *x, void *params, gsl_vector *f);
 int calib_df_FTMS (const gsl_vector *x, void *params, gsl_matrix *J);
 int calib_fdf_FTMS (const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J);
 
+//TOF
+int calib_f_TOF(const gsl_vector *x, void *params, gsl_vector *f);
+int calib_df_TOF (const gsl_vector *x, void *params, gsl_matrix *J);
+int calib_fdf_TOF (const gsl_vector *x, void *params, gsl_vector *f, gsl_matrix *J);
+
 double mz_recal(double peak);
 
 int sort_type_comp_inv_err(const void *i, const void *j);
