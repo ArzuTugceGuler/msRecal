@@ -45,6 +45,8 @@ typedef struct msrecal_param_type
 	double min_score_threshold;	/* min score filter */
 	double max_score_threshold;	/* max score filter */
 
+	double internal_target_mme; /* max error for a calibrated peak */
+
 	char* instrument;
 	char* mass_analyzer;
 

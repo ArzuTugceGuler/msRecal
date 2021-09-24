@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
     double calibration_coefficient_Ca;
     double calibration_coefficient_Cb;
-    double calibration_coefficient_Cc;
+
     double calibrated_precursor_mz;
 
     params = readParameters(argc, argv);
@@ -112,17 +112,17 @@ int main(int argc, char *argv[]) {
 
     printf("\n>>Recalibrating mzXML data..."); fflush(stdout);
 
-    int calibrated [params->ms_end_scan - params->ms_start_scan + 1][2];
+    //int calibrated [params->ms_end_scan - params->ms_start_scan + 1][2];
     int counter = 0;
     int all_calibrated = 0;
     int ms1_calibrated = 0;
     int ms2_calibrated = 0;
     int previous_ms1 = 0;
 
-    for(int i = 0; i <= params->ms_end_scan - params->ms_start_scan; i++){
+    /*for(int i = 0; i <= params->ms_end_scan - params->ms_start_scan; i++){
     	calibrated[i][0] = -1;
     	calibrated[i][1] = -1;
-    }
+    }*/
 
     // iterate each scan for calibration
     for(scan = params->ms_start_scan; scan <= params->ms_end_scan; scan++) {
@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
         				if(previous_ms1 == 1){
         					// --------------------------------------------------------PRINT
         					printf("\tcalibrated\t1"); fflush(stdout);
-        					calibrated[counter][0] = scan;
-        					calibrated[counter][1] = 1;
+        					//calibrated[counter][0] = scan;
+        					//calibrated[counter][1] = 1;
         					//FTICR calibration
         					if(params->match == 1){
         						//calibration_coefficient_Ca = returnCoefficientCa(mzXML_file ->scan_array[scan-1]->precursor_array[0].precursorScanNum);
@@ -186,8 +186,8 @@ int main(int argc, char *argv[]) {
         				else{
         					// --------------------------------------------------------PRINT
         					printf("\tcalibrated\t0"); fflush(stdout);
-        					calibrated[counter][0] = scan;
-        					calibrated[counter][1] = 0;
+        					//calibrated[counter][0] = scan;
+        					//calibrated[counter][1] = 0;
         				}
         			counter++;
         			//break;
@@ -226,8 +226,8 @@ int main(int argc, char *argv[]) {
         if (SATISFIED) {
             applyCalibration(scan, &mzpeaks);
             update_scan_peaks(mzXML_file, scan, mzpeaks.count, 32, mzpeaks.mzs, mzpeaks.intensities);
-            calibrated[counter][0] = scan;
-            calibrated[counter][1] = 1;
+            //calibrated[counter][0] = scan;
+            //calibrated[counter][1] = 1;
             all_calibrated++;
             ms1_calibrated++;
             previous_ms1 = 1;
@@ -241,8 +241,8 @@ int main(int argc, char *argv[]) {
 			//printf("\nTEST"); fflush(stdout);
 			printf("\tcalibrated\t0"); fflush(stdout);
 			//printf("\nNOT CALIBRATED"); fflush(stdout);
-			calibrated[counter][0] = scan;
-			calibrated[counter][1] = 0;
+			//calibrated[counter][0] = scan;
+			//calibrated[counter][1] = 0;
 			previous_ms1 = 0;
             unload_scan_peaks(mzXML_file, scan);
             if (params->crop)

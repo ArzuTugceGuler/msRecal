@@ -19,12 +19,12 @@
 #define MAX_CALIBRANTS 1000
 #define DEFAULT_MODE 0						// lossless by default
 #define DEFAULT_MIN_CALIBRANTS 3			// minimum number of internal calibrants to recalibrate
-#define INTERNAL_CALIBRATION_TARGET 3e-6	// 1.5e-6 discard internal calibrants that do not fit better than this */
+#define INTERNAL_CALIBRATION_TARGET 3	// 1.5e-6 discard internal calibrants that do not fit better than this */
 #define DEFAULT_START_SCAN 1
 #define DEFAULT_RT_LOWER 30
 #define DEFAULT_RT_UPPER 90
 #define DEFAULT_RECAL_OFFSET 0
-#define DEFAULT_MMME 50
+#define DEFAULT_MMME 20
 #define DEFAULT_SCORE "expect"
 
 #endif	/* MSRECALDEFS_H */

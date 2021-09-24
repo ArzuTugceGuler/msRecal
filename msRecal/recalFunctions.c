@@ -512,12 +512,12 @@ int recalibratePeaks(msrecal_params* params){
 	int status, SATISFIED, j;
 	const gsl_multifit_fdfsolver_type *T;
 	gsl_multifit_fdfsolver *s;
-	double chi;
+	//double chi;
 
     size_t iter=0;
     //number of free parameters in calibration function
     //const size_t pp = 1;
-    size_t pp;
+    size_t pp = 1;
 	double y[MAX_CALIBRANTS];
 	double mz2[MAX_CALIBRANTS];
 	struct data d={y,mz2};
@@ -531,9 +531,9 @@ int recalibratePeaks(msrecal_params* params){
 		pp=2;
 	}
 	//Orbitrap calibration
-	else if(calib_mode == 2){
+	/*else if(calib_mode == 2){
 		pp=1;
-	}
+	}*/
 
     gsl_multifit_function_fdf func;
     gsl_vector_view x=gsl_vector_view_array(x_init,pp);
@@ -610,7 +610,7 @@ int recalibratePeaks(msrecal_params* params){
 			Ca = gsl_vector_get(s->x,0);
 			Cb = gsl_vector_get(s->x,1);
 		}
-        chi = gsl_blas_dnrm2(s->f);
+        //chi = gsl_blas_dnrm2(s->f);
         gsl_multifit_fdfsolver_free(s);
 
         // OK, that was one internal recalibration, now lets check if all calibrants are < INTERNAL_CALIBRATION_TARGET, if not, throw these out
@@ -620,7 +620,8 @@ int recalibratePeaks(msrecal_params* params){
 
 
         for(j=n_calibrants-1; j>=0; j--)
-        	if (fabs((calibrant_list[j].mz-mz_recal(calibrant_list[j].mz))/calibrant_list[j].mz)<INTERNAL_CALIBRATION_TARGET)
+        	//if (fabs((calibrant_list[j].mz-mz_recal(calibrant_list[j].mz))/calibrant_list[j].mz)<INTERNAL_CALIBRATION_TARGET)
+        	if (fabs((calibrant_list[j].mz-mz_recal(calibrant_list[j].mz))/calibrant_list[j].mz) < params->internal_target_mme/1000000)
         		break;
         if (j==n_calibrants-1){
         	SATISFIED=1;
@@ -671,10 +672,10 @@ void applyCalibration(int scan, pscan_peaks mzpeaks)
 
 	calibrated_scans[calibration_counter] = scan;
 	//FTICR, Orbitrap, TOF all have a Ca coefficient
-	calibration_coefficients[calibration_counter][1] = Ca;
+	calibration_coefficients[calibration_counter][0] = Ca;
 	//FTICR and TOF have a second calibrant
 	if(calib_mode == 1 || calib_mode == 3 )
-		calibration_coefficients[calibration_counter][2] = Cb;
+		calibration_coefficients[calibration_counter][1] = Cb;
 	calibration_counter++;
 
 }
@@ -683,7 +684,7 @@ double returnCoefficientCa(int scan){
 
 	for(int i = 0; i <= MAX_ROWS; i++){
 		if(calibrated_scans[i] == scan){
-			return calibration_coefficients[i][1];
+			return calibration_coefficients[i][0];
 		}
 	}
 	return 0;
@@ -693,7 +694,7 @@ double returnCoefficientCb(int scan){
 
 	for(int i = 0; i <= MAX_ROWS; i++){
 		if(calibrated_scans[i] == scan){
-			return calibration_coefficients[i][2];
+			return calibration_coefficients[i][1];
 		}
 	}
 	return 0;

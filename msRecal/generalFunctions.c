@@ -28,7 +28,8 @@ void showHelp(){
     printf("-r<float,float>\tRetention time window. The first number is the -delta on a peptide with respect to a scan spectrum, the second number the +delta.\n");
     printf("-c\tCrop flag. By specifying this, spectra that cannot be recalibrated will be emptied.\n");
     printf("-C<int>\tMinimum number of calibrants needed for spectrum recalibration.\n"); 
-    printf("-b\tBackground intensity. Only peaks with an intensity higher than this will be used in recalibration.\n"); 
+    printf("-b\tBackground intensity. Only peaks with an intensity higher than this will be used in recalibration.\n");
+    printf("-g\tInternal calibration target. Calibrated peaks that are only within the target error will be in the output.\n");
     
     fflush(stdout);
 
@@ -120,6 +121,10 @@ msrecal_params* readParameters(int argc, char *argv[])
 				params->bg = atof(p);
 			}
 
+			else if (argv[i][1] == 'g') {
+				params->internal_target_mme = atof(p);
+			}
+
 			else if (argv[i][1]=='h') {
 				showHelp();
 				exit(-1);
@@ -133,6 +138,7 @@ msrecal_params* readParameters(int argc, char *argv[])
         printf("\nMass analyzer type: %s", params->mass_analyzer);
         printf("\nOutput: %s", params->output_mzXML_file);
         printf("\nMaximum allowed mme: %g ppm", params->mmme);
+        printf("\nMaximum internal target error: %g ppm", params->internal_target_mme);
         printf("\nScore: %s", params->score_name);
         printf("\nScore interval: [%g , %g]", params->min_score_threshold, params->max_score_threshold);
         printf("\nMS scan interval: [%i , %i]", params->ms_start_scan, params->ms_end_scan);
@@ -157,8 +163,6 @@ msrecal_params* readParameters(int argc, char *argv[])
 //Initialization routine for parameters struct 
 void initParameters(msrecal_params* params)
 {
-	int i;
-
 	params->mzxml_file = NULL;
     params->pepxml_file = NULL;
 	params->output_mzXML_file = NULL;
@@ -178,6 +182,8 @@ void initParameters(msrecal_params* params)
 	params->mmme = DEFAULT_MMME;
 	params->min_score_threshold = DBL_MIN;
 	params->max_score_threshold = DBL_MAX;
+
+	params->internal_target_mme = INTERNAL_CALIBRATION_TARGET;
 
 	params->instrument = NULL;
 	params->mass_analyzer = NULL;
